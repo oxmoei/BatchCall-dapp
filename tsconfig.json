@@ -23,6 +23,6 @@
     },
     "noUncheckedIndexedAccess": false
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/page copy.tsx.backup"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/page copy.tsx.backup", "src/app/page2.tsx.backup"],
   "exclude": ["node_modules"]
 }

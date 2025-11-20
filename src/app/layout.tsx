@@ -3,7 +3,7 @@ import "./globals.css";
 import { AppProvider } from "@/providers/AppProvider";
 
 export const metadata: Metadata = {
-  title: "EIP-7702 Batch Transaction Tool",
+  title: "Batch Caller",
   description: "Powered by MetaMask Smart Accounts, making batch transactions safer, easier, more efficient and more gas-saving!",
 };
 

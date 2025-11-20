@@ -9,7 +9,7 @@ Browser-based atomic batch transaction tool built with Next.js, wagmi, and viem.
   - ERC‑20 transfer (transfer)
   - ERC‑20 approval (approve, supports unlimited approval)
   - Custom transaction (to/data/value)
-- Supported networks: Ethereum, Polygon, BSC, Arbitrum, Base
+- Supported networks: Ethereum, Polygon, BNB Chain, Arbitrum, Base, Optimism
 - Wallet: MetaMask (EIP‑7702 Smart Account)
 - i18n: Chinese/English (toggle in the top-right corner)
 - UX helpers: transaction status, block explorer links, error messages, and guidance
@@ -66,7 +66,7 @@ npm start
 
 ## Usage
 1. Click "Connect Wallet" (top-right) and choose MetaMask.
-2. Select the target network (Ethereum/Polygon/BSC/Arbitrum/Base).
+2. Select the target network (Ethereum/Polygon/BNB Chain/Arbitrum/Base/Optimism).
 3. Configure transactions in the batch form:
    - Native transfer: recipient + amount (ETH/BNB/POL)
    - ERC20 transfer: token address + recipient + amount (with decimals handling)

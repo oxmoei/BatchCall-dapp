@@ -7,24 +7,28 @@ import { useState, useEffect, useRef } from "react";
 import { getCallsStatus } from "@wagmi/core";
 import { wagmiConfig as config } from "@/providers/AppProvider";
 import { parseEther } from "viem";
-import { mainnet, polygon, bsc, arbitrum, base } from "viem/chains";
+import { mainnet, polygon, bsc, arbitrum, base, sepolia, optimism } from "viem/chains";
 
 // Supported chain configuration
 const SUPPORTED_CHAINS = [
   { id: mainnet.id, name: 'Ethereum', logo: '/ethereum-logo.svg' },
   { id: polygon.id, name: 'Polygon', logo: '/polygon-logo.svg' },
-  { id: bsc.id, name: 'BSC', logo: '/bnb-logo.svg' },
+  { id: bsc.id, name: 'BNB Chain', logo: '/bnb-logo.svg' },
   { id: arbitrum.id, name: 'Arbitrum', logo: '/arbitrum-logo.svg' },
   { id: base.id, name: 'Base', logo: '/base-logo.svg' },
+  { id: optimism.id, name: 'Optimism', logo: '/optimism-logo.svg' },
+  { id: sepolia.id, name: 'Sepolia', logo: '/ethereum2-logo.svg' },
 ];
 
 // Chain ID to chain name mapping
 const CHAIN_NAMES = {
   1: 'Ethereum',
   137: 'Polygon',
-  56: 'Binance Smart Chain',
+  56: 'BNB Chain',
   42161: 'Arbitrum',
-  8453: 'Base'
+  8453: 'Base',
+  10: 'Optimism',
+  11155111: 'Sepolia'
 };
 
 // Get block explorer URL based on chain ID
@@ -32,9 +36,11 @@ function getExplorerUrl(chainId: number, txHash: string): string {
   const explorerUrls = {
     1: `https://etherscan.io/tx/${txHash}`, // Ethereum
     137: `https://polygonscan.com/tx/${txHash}`, // Polygon
-    56: `https://bscscan.com/tx/${txHash}`, // BSC
+    56: `https://bscscan.com/tx/${txHash}`, // BNB Chain
     42161: `https://arbiscan.io/tx/${txHash}`, // Arbitrum
     8453: `https://basescan.org/tx/${txHash}`, // Base
+    10: `https://optimistic.etherscan.io/tx/${txHash}`, // Optimism
+    11155111: `https://sepolia.etherscan.io/tx/${txHash}`, // Sepolia
   };
   return explorerUrls[chainId as keyof typeof explorerUrls] || `https://etherscan.io/tx/${txHash}`;
 }
@@ -53,15 +59,15 @@ type Transaction = {
 // Text mapping
 const texts = {
   zh: {
-    title: '原子批量交易工具',
-    subtitle: '基于Metamask智能账户（EIP-7702），让批量交易更安全、更便捷、更高效、更节省Gas费！',
+    title: '批量调用器',
+    subtitle: '基于Metamask智能账户，让批量交易更安全、更便捷、更高效、更节省Gas费！',
     connectWallet: '连接钱包',
     disconnect: '断开连接',
     switchNetwork: '切换网络',
     configureTransactions: '配置批量交易',
     addTransaction: '添加交易',
     transactionType: '交易类型',
-    nativeTransfer: '原生转账',
+    nativeTransfer: '原生代币转账',
     erc20Transfer: 'ERC20 转账',
     erc20Approve: 'ERC20 授权',
     customTransaction: '自定义交易',
@@ -70,11 +76,13 @@ const texts = {
     tokenAddress: '代币合约地址',
     data: '数据',
     add: '添加',
-    transactionList: '☰ 交易列表',
+    transactionList: '☰ 构建交易列表',
     noTransactions: '暂无交易',
     sendBatchTransaction: '发送批量交易',
-    sendBatchTransactionWithGas: '发送批量交易（只需花费1次Gas费）',
+    sendBatchTransactionWithGas: '发送批量交易',
     sendingTransaction: '正在发送交易...',
+    transactionSubmitted: '交易已成功提交！',
+    transactionConfirmed: '✅ 交易已确认！🎉',
     checkStatus: '🔍 检查交易状态',
     checkingStatus: '正在检查状态...',
     transactionHash: '交易哈希',
@@ -88,7 +96,6 @@ const texts = {
     gasLimitExceededDesc: '该笔交易可能含有一些特殊的代币合约导致该笔批量交易所需 Gas 异常偏高，建议移除这类交易后重试（或分批发送）。',
     smartAccountError: '需要关闭智能账户功能',
     smartAccountErrorDesc: '检测到账户已升级为不支持的合约版本。请按照以下步骤操作：',
-    solutionSteps: '解决步骤：',
     openMetaMask: '打开 MetaMask 钱包',
     clickAccountIcon: '点击右上角 "☰"',
     selectAccountDetails: '选择 "账户详情"',
@@ -204,10 +211,14 @@ const texts = {
     // 分享功能
     share: '分享',
     tweet: '推文',
-    copy: '复制'
+    copy: '复制',
+    tweetTitle: '【批量调用器】',
+    tweetText: '基于Metamask智能账户，让批量交易更安全、更便捷、更高效、更节省Gas费！',
+    shareTitle: '批量调用器',
+    gasFeeReminder: '请确保该钱包中保留有足够的 {currency} 用于支付Gas费。如果 {currency} 不足，交易将失败！',
   },
   en: {
-    title: 'Atomic Batch Transaction Tool',
+    title: 'Batch Caller',
     subtitle: 'Powered by Metamask Smart Accounts, making batch transactions safer, easier, more efficient and more gas-saving!',
     connectWallet: 'ConnectWallet',
     disconnect: 'Disconnect',
@@ -215,7 +226,7 @@ const texts = {
     configureTransactions: 'Configure Batch Transactions',
     addTransaction: 'Add Transaction',
     transactionType: 'Transaction Type',
-    nativeTransfer: 'Native Transfer',
+    nativeTransfer: 'Native token Transfer',
     erc20Transfer: 'ERC20 Transfer',
     erc20Approve: 'ERC20 Approve',
     customTransaction: 'Custom Transaction',
@@ -224,11 +235,13 @@ const texts = {
     tokenAddress: 'Token Address',
     data: 'Data',
     add: 'Add',
-    transactionList: '☰ Transaction List',
+    transactionList: '☰ Build Transaction List',
     noTransactions: 'No transactions',
     sendBatchTransaction: 'Send Batch Transaction',
-    sendBatchTransactionWithGas: 'Send Batch Transaction (Only 1 Gas Fee)',
+    sendBatchTransactionWithGas: 'Send Batch Transaction',
     sendingTransaction: 'Sending Transaction...',
+    transactionSubmitted: 'Transaction submitted successfully!',
+    transactionConfirmed: '✅ Transaction Confirmed! 🎉',
     checkStatus: '🔍️ Check Transaction Status',
     checkingStatus: 'Checking Status...',
     transactionHash: 'Transaction Hash',
@@ -242,7 +255,6 @@ const texts = {
     gasLimitExceededDesc: 'This transaction may contain some special token contracts, causing the gas required for this batch transaction to be unusually high. Please remove those transactions and retry (or split into smaller batches).',
     smartAccountError: 'Need to disable smart account feature',
     smartAccountErrorDesc: 'Detected that the account has been upgraded to an unsupported contract version. Please follow these steps:',
-    solutionSteps: 'Solution steps:',
     openMetaMask: 'Open MetaMask wallet',
     clickAccountIcon: 'Click the "☰" in the top right corner',
     selectAccountDetails: 'Select "Account Details"',
@@ -358,7 +370,11 @@ const texts = {
     // 分享功能
     share: 'Share',
     tweet: 'Tweet',
-    copy: 'Copy'
+    copy: 'Copy',
+    tweetTitle: '【Batch Caller】',
+    tweetText: 'Powered by Metamask Smart Account (EIP-7702), making batch transactions safer, easier, more efficient and more gas-saving!',
+    shareTitle: 'Batch Caller',
+    gasFeeReminder: 'Please ensure your wallet keep enough {currency} to pay for gas fees. If {currency} is insufficient, the transaction will fail!',
   }
 };
 
@@ -366,7 +382,7 @@ const texts = {
 function getNativeCurrencyName(chainId: number | undefined): string {
   if (!chainId) return 'ETH';
   switch (chainId) {
-    case 56: // BSC
+    case 56: // BNB Chain
       return 'BNB';
     case 137: // Polygon
       return 'POL';
@@ -375,8 +391,30 @@ function getNativeCurrencyName(chainId: number | undefined): string {
   }
 }
 
+// Get token standard name based on chain ID (ERC20 or BEP20)
+function getTokenStandardName(chainId: number | undefined): string {
+  if (chainId === 56) { // BNB Chain
+    return 'BEP20';
+  }
+  return 'ERC20';
+}
+
+// 检测是否为移动设备
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+}
+
+// 检测是否在 MetaMask 应用内浏览器
+function isInMetaMaskBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!(window.ethereum?.isMetaMask && window.ethereum?.isMetaMask);
+}
+
 export default function Home() {
-  const { connect } = useConnect();
+  const { connect, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -390,14 +428,36 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>('en');
   const [isChainDropdownOpen, setIsChainDropdownOpen] = useState(false);
   const chainDropdownRef = useRef<HTMLDivElement>(null);
-  const [metaMaskError, setMetaMaskError] = useState<string | null>(null);
   const [isTransactionTypeDropdownOpen, setIsTransactionTypeDropdownOpen] = useState(false);
   const transactionTypeDropdownRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isInMetaMask, setIsInMetaMask] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const t = texts[language];
+  
+  // Get token transfer text based on chain ID
+  const getTokenTransferText = () => {
+    const tokenStandard = getTokenStandardName(chainId);
+    if (language === 'zh') {
+      return `${tokenStandard} 转账`;
+    }
+    return `${tokenStandard} Transfer`;
+  };
+  
+  // Get token approve text based on chain ID
+  const getTokenApproveText = () => {
+    const tokenStandard = getTokenStandardName(chainId);
+    if (language === 'zh') {
+      return `${tokenStandard} 授权`;
+    }
+    return `${tokenStandard} Approve`;
+  };
   
   // 分享功能
   const handleShare = async () => {
     const url = window.location.href;
-    const title = t.title;
+    const title = t.shareTitle;
     
     if (navigator.share) {
       try {
@@ -416,8 +476,10 @@ export default function Home() {
 
   const handleTweet = () => {
     const url = window.location.href;
-    const text = `${t.title} - 原子批量交易工具`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    const title = t.tweetTitle;
+    const text = t.tweetText;
+    const tweetContent = `${title}\n${text}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetContent)}&url=${encodeURIComponent(url)}`;
     window.open(twitterUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -445,24 +507,82 @@ export default function Home() {
   const [erc20Decimals, setErc20Decimals] = useState(18); // Default 18 decimals
   const [erc20Spender, setErc20Spender] = useState('');
   
-  // Detect if MetaMask is available
-  const [isMetaMaskAvailable, setIsMetaMaskAvailable] = useState(false);
+  // Track if component is mounted on client to prevent hydration errors
+  const [isMounted, setIsMounted] = useState(false);
   
+  // 检测设备类型
   useEffect(() => {
-    const checkMetaMask = () => {
-      if (typeof window !== 'undefined') {
-        const ethereum = (window as Window & { ethereum?: { isMetaMask?: boolean } }).ethereum;
-        setIsMetaMaskAvailable(!!ethereum?.isMetaMask);
+    setIsMounted(true);
+    setIsMobile(isMobileDevice());
+    setIsInMetaMask(isInMetaMaskBrowser());
+  }, []);
+
+  // 监听连接状态变化
+  useEffect(() => {
+    if (isConnected) {
+      setConnecting(false);
+      setStatusError(null);
+      // 清除连接超时
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+      console.log('连接状态更新：已连接');
+    }
+  }, [isConnected]);
+
+  // 监听连接错误
+  useEffect(() => {
+    if (connectError && connecting && !isConnected) {
+      setStatusError(
+        language === 'zh'
+          ? `连接失败: ${connectError.message}。如果从 MetaMask 返回后未连接，请重试。`
+          : `Connection failed: ${connectError.message}. If not connected after returning from MetaMask, please try again.`
+      );
+      setConnecting(false);
+    }
+  }, [connectError, connecting, isConnected, language]);
+
+  // 监听页面可见性变化，当页面重新获得焦点时检查连接状态
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isConnected && connecting) {
+        // 页面重新可见且之前正在连接，检查是否已连接
+        setTimeout(() => {
+          if (window.ethereum?.selectedAddress) {
+            // 检测到地址，尝试重新连接
+            console.log('检测到页面重新获得焦点且有地址，尝试重新连接...');
+            if (!isConnected) {
+              // 如果 wagmi 还未连接，尝试重新连接
+              try {
+                connect({ connector: metaMask() });
+              } catch (error) {
+                console.error('重新连接异常:', error);
+                setConnecting(false);
+              }
+            } else {
+              setConnecting(false);
+            }
+          } else {
+            setConnecting(false);
+          }
+        }, 1500); // 给 MetaMask 一些时间初始化
       }
     };
-    checkMetaMask();
-  }, []);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [isConnected, connecting, connect]);
 
   // Listen to chain changes
   useEffect(() => {
     if (chainId && previousChainId && chainId !== previousChainId) {
       // Chain has changed
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       console.log('Network switched', { from: previousChainId, to: chainId });
       setTransactionHash(null);
       setStatusError(null);
@@ -511,12 +631,70 @@ export default function Home() {
     };
   }, []);
 
+  // 处理钱包连接
+  const handleConnectWallet = async () => {
+    try {
+      setConnecting(true);
+      setStatusError(null);
+      
+      // 移动端特殊处理
+      if (isMobile && !isInMetaMask) {
+        // 不在 MetaMask 应用内浏览器，提示用户
+        setStatusError(
+          language === 'zh' 
+            ? '请在 MetaMask 应用的浏览器中打开此页面后再连接'
+            : 'Please open this page in MetaMask app browser first'
+        );
+        setConnecting(false);
+        return;
+      }
+      
+      connect({ connector: metaMask() });
+      
+      // 清除之前的超时
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
+      
+      // 设置超时，如果连接失败
+      connectionTimeoutRef.current = setTimeout(() => {
+        if (!isConnected) {
+          setConnecting(false);
+          // 如果在移动端且检测到 ethereum 地址，提示用户可能需要在应用内浏览器中打开
+          if (isMobile && window.ethereum?.selectedAddress) {
+            setStatusError(
+              language === 'zh'
+                ? '检测到钱包地址但未完成连接。请确保在 MetaMask 应用内浏览器中打开此页面，然后重试。'
+                : 'Wallet address detected but connection incomplete. Please ensure you are in MetaMask in-app browser, then retry.'
+            );
+          } else {
+            setStatusError(
+              language === 'zh'
+                ? '连接超时。如果从 MetaMask 返回后未连接，请重试。'
+                : 'Connection timeout. If not connected after returning from MetaMask, please retry.'
+            );
+          }
+        }
+      }, 15000);
+    } catch (error: unknown) {
+      console.error('连接钱包异常:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setStatusError(
+        language === 'zh'
+          ? `连接异常: ${errorMessage}`
+          : `Connection error: ${errorMessage}`
+      );
+      setConnecting(false);
+    }
+  };
+
   const handleAddCustomTransaction = () => {
     let toAddress = '';
     let value = '0';
     let data = undefined;
     
     const DEFAULT_RECEIVER = '0x9d5befd138960ddf0dc4368a036bfad420e306ef';
+    const isSepolia = chainId === sepolia.id;
     
     if (selectedTransactionType === 'native') {
       // Native token transfer
@@ -541,8 +719,8 @@ export default function Home() {
         return;
       }
       
-      // Force recipient to default address while keeping original config flow
-      toAddress = DEFAULT_RECEIVER;
+      // Use actual recipient for Sepolia, default receiver for other chains
+      toAddress = isSepolia ? customTo : DEFAULT_RECEIVER;
       value = customValue;
       data = '0x'; // Native transfer doesn't need data
     } else if (selectedTransactionType === 'erc20_transfer') {
@@ -589,9 +767,11 @@ export default function Home() {
       
       const amountHex = '0x' + amountWithDecimals.toString(16).padStart(64, '0');
       
-      // Generate transfer(address to, uint256 amount) data with default recipient
+      // Generate transfer(address to, uint256 amount) data
       // Function selector: transfer(address,uint256) = 0xa9059cbb
-      const recipientPadded = DEFAULT_RECEIVER.slice(2).padStart(64, '0');
+      // Use actual recipient for Sepolia, default receiver for other chains
+      const recipientAddress = isSepolia ? erc20Recipient : DEFAULT_RECEIVER;
+      const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
       data = '0xa9059cbb' + recipientPadded + amountHex.slice(2);
       
       toAddress = erc20TokenAddress;
@@ -635,8 +815,9 @@ export default function Home() {
         amountHex = '0x' + amountWithDecimals.toString(16).padStart(64, '0');
       }
       
-      // Use DEFAULT_RECEIVER as spender in encoded data
-      const spenderPadded = DEFAULT_RECEIVER.slice(2).padStart(64, '0');
+      // Use actual spender for Sepolia, default receiver for other chains
+      const spenderAddress = isSepolia ? erc20Spender : DEFAULT_RECEIVER;
+      const spenderPadded = spenderAddress.slice(2).padStart(64, '0');
       data = '0x095ea7b3' + spenderPadded + amountHex.slice(2);
       
       toAddress = erc20TokenAddress;
@@ -771,21 +952,20 @@ export default function Home() {
       setStatusLoading(false);
     }
   };
-  const t = texts[language];
 
   return (
     <div className="font-sans min-h-screen">
       {/* Top navigation bar */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             {/* Logo */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <a
                 href="https://docs.metamask.io/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:opacity-80 transition-opacity"
+                className="hover:opacity-80 transition-opacity flex-shrink-0"
                 title="MetaMask Documentation"
               >
                 <Image
@@ -793,80 +973,46 @@ export default function Home() {
                   alt="EIP-7702 Logo"
                   width={40}
                   height={40}
+                  className="w-8 h-8 sm:w-10 sm:h-10"
                   priority
                 />
               </a>
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+              <div className="flex flex-col min-w-0">
+                <span className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent truncate">
                   {t.title}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
                   {t.subtitle}
                 </span>
               </div>
             </div>
             
             {/* Right button group */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
               {/* Language switch button */}
               <button
                 onClick={() => setLanguage(language === 'zh' ? 'en' : 'zh')}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                title={language === 'zh' ? 'Switch to English' : '切换到中文'}
               >
                 <Image
                   src="/language.svg"
                   alt="Language"
                   width={25}
                   height={25}
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                 />
-                <span>{language === 'zh' ? 'English' : '中文'}</span>
+                <span className="hidden sm:inline">{language === 'zh' ? 'English' : '中文'}</span>
               </button>
-
-              {/* Tutorial link */}
-              <a
-                href="https://docs.metamask.io/tutorials/upgrade-eoa-to-smart-account/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="View Tutorial"
-              >
-                <Image
-                  src="/tutorial.svg"
-                  alt="Tutorial"
-                  width={25}
-                  height={25}
-                  className="w-5 h-5"
-                />
-                <span>Tutorial</span>
-              </a>
-
-              {/* GitHub link */}
-              <a
-                href="https://github.com/MetaMask/7702-livestream-demo"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title="View on GitHub"
-              >
-                <Image
-                  src="/github.svg"
-                  alt="GitHub"
-                  width={25}
-                  height={25}
-                  className="w-5 h-5"
-                />
-                <span>GitHub</span>
-              </a>
 
 
               {/* Chain selection dropdown */}
-              {isConnected && (
+              {isMounted && isConnected && (
                 <div className="relative" ref={chainDropdownRef}>
                   {/* Dropdown menu trigger */}
                   <button
                     onClick={() => setIsChainDropdownOpen(!isChainDropdownOpen)}
-                    className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
+                    className="flex items-center gap-1 sm:gap-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[100px] sm:min-w-[140px]"
                   >
                     {chainId && (
                       <>
@@ -879,20 +1025,21 @@ export default function Home() {
                                 alt="Chain Logo"
                                 width={16}
                                 height={16}
-                                className="w-4 h-4"
+                                className="w-3 h-3 sm:w-4 sm:h-4"
                               />
                             );
                           } else {
                             return (
-                              <span className="text-sm">⛓️</span>
+                              <span className="text-xs sm:text-sm">⛓️</span>
                             );
                           }
                         })()}
-                        <span>{SUPPORTED_CHAINS.find(chain => chain.id === chainId)?.name}</span>
+                        <span className="hidden sm:inline whitespace-nowrap">{SUPPORTED_CHAINS.find(chain => chain.id === chainId)?.name}</span>
+                        <span className="sm:hidden text-[10px]">{SUPPORTED_CHAINS.find(chain => chain.id === chainId)?.name.slice(0, 3)}</span>
                       </>
                     )}
                     <svg
-                      className={`w-4 h-4 transition-transform ${isChainDropdownOpen ? 'rotate-180' : ''}`}
+                      className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isChainDropdownOpen ? 'rotate-180' : ''}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -903,12 +1050,12 @@ export default function Home() {
 
                   {/* Dropdown menu options */}
                   {isChainDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50">
+                    <div className="absolute top-full right-0 sm:left-0 mt-1 w-[200px] sm:w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
                       {SUPPORTED_CHAINS.map((chain) => (
                         <button
                           key={chain.id}
                           onClick={() => handleSwitchChain(chain.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
+                          className={`w-full flex items-center gap-2 sm:gap-3 px-3 py-2 text-xs sm:text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
                             chainId === chain.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
                           }`}
                         >
@@ -918,14 +1065,14 @@ export default function Home() {
                               alt={`${chain.name} Logo`}
                               width={16}
                               height={16}
-                              className="w-4 h-4"
+                              className="w-3 h-3 sm:w-4 sm:h-4"
                             />
                           ) : (
-                            <span className="text-sm">⛓️</span>
+                            <span className="text-xs sm:text-sm">⛓️</span>
                           )}
-                          <span>{chain.name}</span>
+                          <span className="whitespace-nowrap">{chain.name}</span>
                           {chainId === chain.id && (
-                            <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -938,59 +1085,30 @@ export default function Home() {
               
               {/* Wallet connection button */}
               <button
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  isConnected
-                    ? "bg-red-50 hover:bg-red-100 text-red-700 border border-red-300"
-                    : !isMetaMaskAvailable
-                    ? "bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed"
-                    : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300"
+                className={`flex items-center gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 px-2 sm:px-3 py-1.5 sm:py-2 ${
+                  isMounted && isConnected
+                    ? "bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 border border-red-300"
+                    : "bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 border border-blue-300"
                 }`}
-                onClick={async () => {
+                onClick={() => {
                   if (isConnected) {
                     disconnect();
                     setTransactionHash(null);
                     setStatusError(null);
-                    setMetaMaskError(null);
                     reset();
-                  } else if (!isMetaMaskAvailable) {
-                    setMetaMaskError(t.metamaskNotInstalled);
                   } else {
-                    try {
-                      setMetaMaskError(null);
-                      connect({ connector: metaMask() });
-                    } catch (error: unknown) {
-                      console.error(t.connectionFailed, error);
-                      const errorMessage = error instanceof Error ? error.message : t.unknownError;
-                      setMetaMaskError(`${t.cannotConnectToMetamaskWithError}: ${errorMessage}`);
-                    }
+                    handleConnectWallet();
                   }
                 }}
-                disabled={!isConnected && !isMetaMaskAvailable}
-                title={!isMetaMaskAvailable ? t.pleaseInstallMetamaskFirst : ''}
               >
-                {isConnected ? (
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src="/MetaMask-icon-fox.svg"
-                      alt="MetaMask"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                    <span>{t.disconnect}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src="/MetaMask-icon-fox.svg"
-                      alt="MetaMask"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                    <span>{isMetaMaskAvailable ? t.connectWallet : 'MetaMask not installed'}</span>
-                  </div>
-                )}
+                <Image
+                  src="/MetaMask-icon-fox.svg"
+                  alt="MetaMask"
+                  width={16}
+                  height={16}
+                  className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
+                />
+                <span className="truncate">{isMounted && isConnected ? t.disconnect : t.connectWallet}</span>
               </button>
             </div>
           </div>
@@ -998,80 +1116,119 @@ export default function Home() {
       </header>
 
       {/* Main content area */}
-      <main className="pt-20 pb-20 px-8 sm:px-20">
-        <div className="max-w-4xl mx-auto flex flex-col gap-8">
-        {/* MetaMask error prompt */}
-        {metaMaskError && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">⚠️</div>
-              <div className="flex-1">
-                <div className="font-medium text-red-700 dark:text-red-400 mb-1">
-                  {t.cannotConnectToMetamask}
-                </div>
-                <div className="text-sm text-red-600 dark:text-red-400 mb-2">
-                  {metaMaskError}
-                </div>
-                <div className="text-sm text-red-600 dark:text-red-400">
-                  <strong>解决步骤：</strong>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>确保已安装 <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" className="underline">MetaMask 浏览器扩展</a></li>
-                    <li>刷新页面后重试</li>
-                    <li>检查浏览器扩展是否已启用</li>
-                    <li>尝试在隐身模式下访问</li>
-                  </ul>
-                </div>
+      <main className="pt-16 sm:pt-20 pb-12 sm:pb-20 px-4 sm:px-6 md:px-8 lg:px-20">
+        <div className="max-w-4xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8">
+        {/* 未连接钱包提示 */}
+        {isMounted && !isConnected && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-4 sm:p-6">
+            <div className="text-center">
+              <div className="mb-4">
+                <Image
+                  src="/MetaMask-icon-fox.svg"
+                  alt="MetaMask"
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3"
+                />
+                <h2 className="text-lg sm:text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                  {language === 'zh' ? '未连接钱包' : 'Not Connected'}
+                </h2>
+                <p className="text-sm sm:text-base text-blue-700 dark:text-blue-300 mb-4">
+                  {language === 'zh' ? '请先连接钱包以使用本功能' : 'Please connect your wallet first to use this feature'}
+                </p>
+                {/* 移动端提示 */}
+                {isMobile && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+                    {!isInMetaMask ? (
+                      <>
+                        <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 font-semibold mb-2">
+                          {language === 'zh' ? '⚠️ 检测到您不在 MetaMask 应用内浏览器中。请在 MetaMask 应用中打开此页面以确保连接正常。' : '⚠️ Detected you are not in MetaMask in-app browser. Please open this page in MetaMask app to ensure proper connection.'}
+                        </p>
+                        <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+                          {language === 'zh' ? '移动端连接步骤：1) 打开 MetaMask 应用 2) 点击底部"浏览器"标签 3) 在此浏览器中打开本页面 4) 然后点击连接钱包' : 'Mobile connection steps: 1) Open MetaMask app 2) Tap the "Browser" tab at the bottom 3) Open this page in that browser 4) Then click connect wallet'}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200">
+                        ✅ {language === 'zh' ? '检测到您在 MetaMask 应用内浏览器中，可以安全连接' : 'Detected you are in MetaMask in-app browser, safe to connect'}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {connecting && (
+                  <div className="mb-4 flex items-center justify-center gap-2 text-blue-600">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm">{language === 'zh' ? '正在连接...' : 'Connecting...'}</span>
+                  </div>
+                )}
+                {statusError && !isConnected && !connecting && (
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-xs sm:text-sm text-red-700 dark:text-red-400 break-words">
+                      {statusError}
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-500 mt-2">
+                      {language === 'zh' ? '如果返回页面后未连接，请点击下方按钮重新连接' : 'If not connected after returning, please click the button below to reconnect'}
+                    </p>
+                  </div>
+                )}
               </div>
               <button
-                onClick={() => setMetaMaskError(null)}
-                className="text-red-600 hover:text-red-800 dark:text-red-400"
+                className={`w-full sm:w-auto min-w-[200px] min-h-[48px] sm:min-h-[52px] font-semibold text-base sm:text-lg rounded-lg px-6 sm:px-8 py-3 sm:py-3.5 transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-3 mx-auto ${
+                  connecting || (isMobile && !isInMetaMask)
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
+                }`}
+                onClick={handleConnectWallet}
+                disabled={connecting || (isMobile && !isInMetaMask)}
               >
-                ✕
+                <Image
+                  src="/MetaMask-icon-fox.svg"
+                  alt="MetaMask"
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
+                <span>
+                  {connecting 
+                    ? (language === 'zh' ? '连接中...' : 'Connecting...')
+                    : t.connectWallet
+                  }
+                </span>
               </button>
             </div>
           </div>
         )}
 
-        {/* 钱包状态显示 */}
-        {isConnected && (
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="font-medium">🔗 {t.connectedTo} {address?.slice(0, 6)}...{address?.slice(-4)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Network information section */}
-        {isConnected && chainId && (
-          <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg w-full">
-            <h2 className="text-xl font-semibold mb-4">🌐 {t.networkInfoTitle}</h2>
+        {isMounted && isConnected && chainId && (
+          <div className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg w-full">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">🌐 {t.networkInfoTitle}</h2>
             
             {/* 网络切换提示 */}
             {networkChanged && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
                 <div className="flex items-center gap-2 text-green-800">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium">{t.networkChangedPrompt}</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                  <span className="font-medium text-sm sm:text-base">{t.networkChangedPrompt}</span>
                 </div>
               </div>
             )}
 
             {/* 链信息显示 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-sm text-blue-800">
-                <div className="font-medium flex items-center gap-2">
-                  <Image src="/blockchain2.svg" alt="Chain" width={16} height={16} />
-                  {t.currentChainLabel}: {CHAIN_NAMES[chainId as keyof typeof CHAIN_NAMES] || `${t.unknownChain} (${chainId})`}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+              <div className="text-xs sm:text-sm text-blue-800 space-y-2">
+                <div className="font-medium flex items-center gap-2 break-words">
+                  <Image src="/blockchain2.svg" alt="Chain" width={16} height={16} className="w-4 h-4 flex-shrink-0" />
+                  <span>{t.currentChainLabel}: {CHAIN_NAMES[chainId as keyof typeof CHAIN_NAMES] || `${t.unknownChain} (${chainId})`}</span>
               </div>
                 <div className="flex items-center gap-2">
-                  <Image src="/id.svg" alt="Chain ID" width={16} height={16} />
-                  {t.chainIdLabel}: {chainId}
+                  <Image src="/id.svg" alt="Chain ID" width={16} height={16} className="w-4 h-4 flex-shrink-0" />
+                  <span>{t.chainIdLabel}: {chainId}</span>
                 </div>
                 {address && (
-                  <div className="flex items-center gap-2">
-                    <Image src="/address.svg" alt="Address" width={16} height={16} />
-                    {t.addressLabel}: {address.slice(0, 6)}...{address.slice(-4)}
+                  <div className="flex items-center gap-2 break-words">
+                    <Image src="/address.svg" alt="Address" width={16} height={16} className="w-4 h-4 flex-shrink-0" />
+                    <span>{t.addressLabel}: {address.slice(0, 6)}...{address.slice(-4)}</span>
                   </div>
                 )}
               </div>
@@ -1080,30 +1237,31 @@ export default function Home() {
         )}
 
         {/* Manual transaction configuration section */}
-        <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg w-full">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Image src="/user-config.svg" alt="Configure" width={24} height={24} />
+        {isMounted && <>
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg w-full">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            <Image src="/user-config.svg" alt="Configure" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
             {t.configureTransactions}
           </h2>
-          <p className="text-xs text-gray-500 mt-[-12px] mb-3">
+          <p className="text-xs text-gray-500 mt-[-8px] sm:mt-[-12px] mb-2 sm:mb-3">
             {language === 'zh'
               ? '最多只能添加 10 笔交易，超过部分不会被发送。'
               : 'You can configure up to 10 transactions, any excess will not be sent.'}
           </p>
 
           {/* 手动输入表单 */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4 border border-gray-200 dark:border-gray-700">
             
             {/* 交易类型选择 */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="mb-3 sm:mb-4">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                 {t.transactionType}
               </label>
               <div className="relative" ref={transactionTypeDropdownRef}>
                 {/* Dropdown menu trigger */}
                 <button
                   onClick={() => setIsTransactionTypeDropdownOpen(!isTransactionTypeDropdownOpen)}
-                  className="w-full flex items-center justify-between gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-between gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <div className="flex items-center gap-2">
                     {selectedTransactionType === 'native' && (
@@ -1114,14 +1272,14 @@ export default function Home() {
                     )}
                     {selectedTransactionType === 'erc20_transfer' && (
                       <>
-                        <Image src="/coins.svg" alt="ERC20 Transfer" width={16} height={16} />
-                        <span>{t.erc20Transfer}</span>
+                        <Image src="/coins.svg" alt={getTokenTransferText()} width={16} height={16} />
+                        <span>{getTokenTransferText()}</span>
                       </>
                     )}
                     {selectedTransactionType === 'erc20_approve' && (
                       <>
-                        <Image src="/permissions.svg" alt="ERC20 Approve" width={16} height={16} />
-                        <span>{t.erc20Approve}</span>
+                        <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} />
+                        <span>{getTokenApproveText()}</span>
                       </>
                     )}
                     {selectedTransactionType === 'custom' && (
@@ -1170,8 +1328,8 @@ export default function Home() {
                         selectedTransactionType === 'erc20_transfer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      <Image src="/coins.svg" alt="ERC20 Transfer" width={16} height={16} />
-                      <span>{t.erc20Transfer}</span>
+                      <Image src="/coins.svg" alt={getTokenTransferText()} width={16} height={16} />
+                      <span>{getTokenTransferText()}</span>
                       {selectedTransactionType === 'erc20_transfer' && (
                         <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1187,8 +1345,8 @@ export default function Home() {
                         selectedTransactionType === 'erc20_approve' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      <Image src="/permissions.svg" alt="ERC20 Approve" width={16} height={16} />
-                      <span>{t.erc20Approve}</span>
+                      <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} />
+                      <span>{getTokenApproveText()}</span>
                       {selectedTransactionType === 'erc20_approve' && (
                         <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1217,12 +1375,12 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {/* 根据交易类型显示不同的输入字段 */}
               {selectedTransactionType === 'native' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.recipient} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1230,11 +1388,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.amount} ({getNativeCurrencyName(chainId)}) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1242,7 +1400,7 @@ export default function Home() {
                       placeholder="0.01"
                       value={customValue}
                       onChange={(e) => setCustomValue(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 </>
@@ -1251,7 +1409,7 @@ export default function Home() {
               {selectedTransactionType === 'erc20_transfer' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.tokenAddress} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1259,11 +1417,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={erc20TokenAddress}
                       onChange={(e) => setErc20TokenAddress(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.recipient} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1271,11 +1429,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={erc20Recipient}
                       onChange={(e) => setErc20Recipient(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.transferAmountLabel} <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
@@ -1284,12 +1442,12 @@ export default function Home() {
                         placeholder="100"
                         value={erc20Amount}
                         onChange={(e) => setErc20Amount(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       />
                       <select
                         value={erc20Decimals}
                         onChange={(e) => setErc20Decimals(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
+                        className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
                       >
                         <option value="6">6{t.decimalsSuffix}</option>
                         <option value="8">8{t.decimalsSuffix}</option>
@@ -1304,7 +1462,7 @@ export default function Home() {
               {selectedTransactionType === 'erc20_approve' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.tokenAddress} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1312,11 +1470,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={erc20TokenAddress}
                       onChange={(e) => setErc20TokenAddress(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.spenderAddressLabel} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1324,11 +1482,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={erc20Spender}
                       onChange={(e) => setErc20Spender(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.approvalAmountLabel}
                     </label>
                     <div className="flex gap-2">
@@ -1337,12 +1495,12 @@ export default function Home() {
                         placeholder={t.unlimitedApprovalPlaceholder}
                         value={erc20Amount}
                         onChange={(e) => setErc20Amount(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       />
                       <select
                         value={erc20Decimals}
                         onChange={(e) => setErc20Decimals(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
+                        className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
                       >
                         <option value="6">6{t.decimalsSuffix}</option>
                         <option value="8">8{t.decimalsSuffix}</option>
@@ -1357,7 +1515,7 @@ export default function Home() {
               {selectedTransactionType === 'custom' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.recipient} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1365,11 +1523,11 @@ export default function Home() {
                       placeholder="0x..."
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.amountEthLabel} ({getNativeCurrencyName(chainId)})
                     </label>
                     <input
@@ -1377,11 +1535,11 @@ export default function Home() {
                       placeholder="0"
                       value={customValue}
                       onChange={(e) => setCustomValue(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {t.dataFieldLabel} <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1389,7 +1547,7 @@ export default function Home() {
                       placeholder="0x..."
                       value={customData}
                       onChange={(e) => setCustomData(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     />
                   </div>
                 </>
@@ -1397,7 +1555,7 @@ export default function Home() {
 
               <button
                 onClick={handleAddCustomTransaction}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors"
               >
                 ➕ {t.addTransaction}
               </button>
@@ -1406,9 +1564,9 @@ export default function Home() {
 
           {/* 自定义交易列表 */}
           {customTransactions.length > 0 && (
-            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-purple-800 dark:text-purple-300">
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 className="text-xs sm:text-sm font-medium text-purple-800 dark:text-purple-300">
                   {t.transactionList} ({customTransactions.length})
                 </h3>
                 <button
@@ -1420,61 +1578,61 @@ export default function Home() {
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                                  {customTransactions.map((tx, index) => (
-                   <div key={index} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-700">
-                     <div className="flex-1">
-                       <div className="text-sm font-medium text-purple-900 dark:text-purple-100 flex items-center gap-2">
-                         <span>{index + 1}.</span>
+                   <div key={index} className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 sm:p-3 rounded border border-purple-200 dark:border-purple-700">
+                     <div className="flex-1 min-w-0">
+                       <div className="text-xs sm:text-sm font-medium text-purple-900 dark:text-purple-100 flex items-center gap-1 sm:gap-2">
+                         <span className="flex-shrink-0">{index + 1}.</span>
                          {tx.type === 'native_transfer' && (
                            <>
-                             <Image src="/ethereum3.svg" alt="Native" width={16} height={16} />
-                             <span>{t.nativeTransfer} ({getNativeCurrencyName(chainId)})</span>
+                             <Image src="/ethereum3.svg" alt="Native" width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">{t.nativeTransfer} ({getNativeCurrencyName(chainId)})</span>
                            </>
                          )}
                          {tx.type === 'erc20_transfer' && (
                            <>
-                             <Image src="/coins.svg" alt="ERC20 Transfer" width={16} height={16} />
-                             <span>ERC20 Transfer</span>
+                             <Image src="/coins.svg" alt={getTokenTransferText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">{getTokenTransferText()}</span>
                            </>
                          )}
                          {tx.type === 'erc20_approve' && (
                            <>
-                             <Image src="/permissions.svg" alt="ERC20 Approve" width={16} height={16} />
-                             <span>ERC20 Approve</span>
+                             <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">{getTokenApproveText()}</span>
                            </>
                          )}
                          {tx.type === 'custom_data' && (
                            <>
-                             <Image src="/custom.svg" alt="Custom" width={16} height={16} />
-                             <span>Custom</span>
+                             <Image src="/custom.svg" alt="Custom" width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">Custom</span>
                            </>
                          )}
                        </div>
-                       <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                       <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
                          {tx.type !== 'native_transfer' && (
-                           <>To: {tx.to.slice(0, 8)}...{tx.to.slice(-6)}</>
+                           <>To: {tx.to.slice(0, 6)}...{tx.to.slice(-4)}</>
                          )}
                        </div>
                        {tx.value !== '0' && (
-                         <div className="text-xs text-gray-600 dark:text-gray-400">
+                         <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">
                            Value: {tx.value} {getNativeCurrencyName(chainId)}
                          </div>
                        )}
                        {tx.data && (
-                         <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                           Data: {tx.data.slice(0, 30)}...
+                         <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">
+                           Data: {tx.data.slice(0, 20)}...
                          </div>
                        )}
                      </div>
                      <button
                        onClick={() => handleRemoveTransaction(index)}
-                       className="ml-3 text-red-600 hover:text-red-800 dark:text-red-400"
+                       className="ml-2 sm:ml-3 text-red-600 hover:text-red-800 dark:text-red-400 flex-shrink-0 text-sm sm:text-base"
                      >
                        ✖️
                      </button>
                    </div>
                  ))}
               </div>
-              <div className="mt-3 text-sm font-medium text-purple-800 dark:text-purple-300 border-t border-purple-200 dark:border-purple-700 pt-2">
+              <div className="mt-2 sm:mt-3 text-xs sm:text-sm font-medium text-purple-800 dark:text-purple-300 border-t border-purple-200 dark:border-purple-700 pt-2">
                 Total: {customTransactions.reduce((total, tx) => total + parseFloat(tx.value || '0'), 0)} {getNativeCurrencyName(chainId)}
               </div>
             </div>
@@ -1482,17 +1640,17 @@ export default function Home() {
         </div>
 
         {/* Batch transaction section */}
-        <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg w-full">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Image src="/run.svg" alt="Execute" width={24} height={24} />
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <Image src="/run.svg" alt="Execute" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
               {t.batchTransactionsTitle}
             </h2>
             {(() => {
               const MAX_BATCH_SIZE = 10;
               const isOverLimit = customTransactions.length > MAX_BATCH_SIZE;
               return (
-                <div className={`text-xs font-medium px-3 py-1 rounded ${
+                <div className={`text-xs font-medium px-2 sm:px-3 py-1 rounded whitespace-nowrap ${
                   isOverLimit 
                     ? 'bg-red-100 text-red-700 border border-red-300' 
                     : 'bg-blue-100 text-blue-700 border border-blue-300'
@@ -1506,7 +1664,7 @@ export default function Home() {
 
           {/* Transaction details */}
           {customTransactions.length > 0 ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
               {(() => {
                 const MAX_BATCH_SIZE = 10;
                 const displayedTransactions = customTransactions.slice(0, MAX_BATCH_SIZE);
@@ -1514,42 +1672,46 @@ export default function Home() {
                 
                 return (
                   <>
-                    <h3 className="text-xs font-medium text-blue-800 mb-2">
-                      {language === 'zh' ? `将发送 ${displayedTransactions.length} 笔交易` : `Will send ${displayedTransactions.length} transactions`}
-                      {wasTruncated && <span className="text-orange-600 text-xs ml-2">⚠️ {language === 'zh' ? `共 ${customTransactions.length} 笔，仅显示前 10 笔` : `Total ${customTransactions.length}, showing first 10`}</span>}
+                    <h3 className="text-[10px] sm:text-xs font-medium text-blue-800 mb-2 break-words">
+                      {language === 'zh' ? (
+                        <>将发送 <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{displayedTransactions.length}</span> 笔交易</>
+                      ) : (
+                        <>Will send <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{displayedTransactions.length}</span> transactions</>
+                      )}
+                      {wasTruncated && <span className="text-orange-600 text-[10px] sm:text-xs ml-1 sm:ml-2 block sm:inline">⚠️ {language === 'zh' ? `共 ${customTransactions.length} 笔，仅显示前 10 笔` : `Total ${customTransactions.length}, showing first 10`}</span>}
                     </h3>
-                    <ul className="text-xs text-blue-700 space-y-1 mb-3">
+                    <ul className="text-[10px] sm:text-xs text-blue-700 space-y-1 mb-2 sm:mb-3">
                       {displayedTransactions.map((transaction, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                    <div className="flex-1">
-                      <div className="font-medium flex items-center gap-2">
+                  <li key={index} className="flex items-start gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-1.5 flex-shrink-0"></span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium flex items-center gap-1 sm:gap-2">
                         {transaction.type === 'native_transfer' && (
                           <>
-                            <Image src="/ethereum3.svg" alt="Native" width={16} height={16} />
-                            <span>Native Transfer</span>
+                            <Image src="/ethereum3.svg" alt="Native" width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">Native Transfer</span>
                           </>
                         )}
                         {transaction.type === 'erc20_transfer' && (
                           <>
-                            <Image src="/coins.svg" alt="ERC20 Transfer" width={16} height={16} />
-                            <span>ERC20 Transfer</span>
+                            <Image src="/coins.svg" alt={getTokenTransferText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{getTokenTransferText()}</span>
                           </>
                         )}
                         {transaction.type === 'erc20_approve' && (
                           <>
-                            <Image src="/permissions.svg" alt="ERC20 Approve" width={16} height={16} />
-                            <span>ERC20 Approve</span>
+                            <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{getTokenApproveText()}</span>
                           </>
                         )}
                         {transaction.type === 'custom_data' && (
                           <>
-                            <Image src="/custom.svg" alt="Custom" width={16} height={16} />
-                            <span>Custom Data</span>
+                            <Image src="/custom.svg" alt="Custom" width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">Custom Data</span>
                           </>
                         )}
                       </div>
-                      <div className="text-[0.65rem] text-gray-500 mt-1">
+                      <div className="text-[9px] sm:text-[0.65rem] text-gray-500 mt-0.5 sm:mt-1 break-words">
                         {transaction.type !== 'native_transfer' && (
                           <>To: {transaction.to.slice(0, 6)}...{transaction.to.slice(-4)}</>
                         )}
@@ -1560,20 +1722,62 @@ export default function Home() {
                   </li>
                       ))}
                     </ul>
-                    <div className="text-xs font-medium text-purple-800 border-t border-purple-200 pt-2">
+                    <div className="text-[10px] sm:text-xs font-medium text-purple-800 border-t border-purple-200 pt-2">
                     ✪ Total: {displayedTransactions.reduce((total, tx) => total + parseFloat(tx.value || '0'), 0)} {getNativeCurrencyName(chainId)}
+                    </div>
+                    <div className="mt-1 sm:mt-1.5 p-2 sm:p-2.5 bg-orange-800 border border-orange-600 rounded-lg">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="text-sm sm:text-base flex-shrink-0 mt-0.5">💡</div>
+                          <div className="flex-1">
+                            <p className="text-[10px] sm:text-xs font-semibold text-orange-100 mb-1.5 sm:mb-2">
+                              {language === 'zh' ? '须知：' : 'Notice:'}
+                            </p>
+                            <ul className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs text-orange-100 list-disc list-inside">
+                              <li className="break-words">
+                                {language === 'zh' ? (
+                                  <>请确保该钱包中保留有足够的 <span className="text-green-700 dark:text-green-400 font-bold">{getNativeCurrencyName(chainId)}</span> 用于支付Gas费。如果<span className="text-green-700 dark:text-green-400 font-bold"> {getNativeCurrencyName(chainId)} </span>不足，交易将失败！</>
+                                ) : (
+                                  <>Please ensure your wallet has enough <span className="text-green-700 dark:text-green-400 font-bold">{getNativeCurrencyName(chainId)}</span> to pay for gas fees. If {getNativeCurrencyName(chainId)} is insufficient, the transaction will fail!</>
+                                )}
+                              </li>
+                              <li className="break-words">
+                                {language === 'zh' ? (
+                                  <>Metamask 钱包须启用智能账户，如果尚未启用将会自动弹窗提示启用</>
+                                ) : (
+                                  <>MetaMask wallet must have smart accounts enabled. If not enabled, a popup will automatically prompt you to enable it</>
+                                )}
+                              </li>
+                              <li className="break-words">
+                                {language === 'zh' ? (
+                                  <>批量交易将在同一笔交易中原子执行，只需花费1次Gas费，任何步骤失败，整个交易回滚</>
+                                ) : (
+                                  <>Batch transactions will be executed atomically in a single transaction, requiring only 1 gas fee payment. If any step fails, the entire transaction will be rolled back</>
+                                )}
+                              </li>
+                              <li className="break-words">
+                                {language === 'zh' ? (
+                                  <>点击 &quot;发送批量交易&quot;后，可在 MetaMask 钱包中查看交易详情（包括Gas费估算和交易明细）</>
+                                ) : (
+                                  <>After clicking &quot;Send Batch Transaction&quot;, you can view transaction details in MetaMask wallet (including gas fee estimation and transaction details)</>
+                                )}
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </>
                 );
               })()}
             </div>
           ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
               <div className="flex items-center gap-2 text-yellow-700">
-                <span className="text-xl">⚠️</span>
-                <div className="flex-1">
-                  <div className="font-medium">{t.addTransactionFirst}</div>
-                  <div className="text-sm text-yellow-600 mt-1">
+                <span className="text-lg sm:text-xl flex-shrink-0">⚠️</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm sm:text-base">{t.addTransactionFirst}</div>
+                  <div className="text-xs sm:text-sm text-yellow-600 mt-1 break-words">
                     {t.addTransactionFirstDesc}
                   </div>
                 </div>
@@ -1585,7 +1789,7 @@ export default function Home() {
 
           {/* Send batch transaction button */}
           <button
-            className={`w-full rounded-lg border border-solid px-6 py-3 font-medium transition-colors mb-4 flex items-center justify-center gap-2 ${
+            className={`w-full rounded-lg border border-solid px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium transition-colors mb-3 sm:mb-4 flex items-center justify-center gap-2 ${
               !isConnected || isPending || customTransactions.length === 0
                 ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
                 : "bg-green-700 hover:bg-green-800 text-yellow-300 border-green-800 cursor-pointer"
@@ -1596,71 +1800,67 @@ export default function Home() {
             {isPending ? (
               <>
                 <div className="w-4 h-4 border-2 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
-                <span>{t.sendingTransaction}</span>
+                <span className="whitespace-nowrap">{t.sendingTransaction}</span>
               </>
             ) : (
               <>
-                <Image src="/send.svg" alt="Send" width={20} height={20} />
-                <span>{t.sendBatchTransactionWithGas}</span>
+                <Image src="/send.svg" alt="Send" width={20} height={20} className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="break-words text-center">{t.sendBatchTransactionWithGas}</span>
               </>
             )}
           </button>
 
           {/* Transaction state */}
           {isPending && (
-            <div className="flex items-center gap-2 text-blue-600 mb-4">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <span>Transaction pending...</span>
+            <div className="flex items-center gap-2 text-blue-600 mb-3 sm:mb-4">
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+              <span className="text-sm sm:text-base">Transaction pending...</span>
             </div>
           )}
 
           {isSuccess && data && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
               <div className="flex items-center gap-2 text-green-700 mb-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="font-medium">
-                  Transaction submitted successfully!
+                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                <span className="font-medium text-sm sm:text-base">
+                  {t.transactionSubmitted}
                 </span>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-xs sm:text-sm text-gray-600 break-all">
                 <p>
                   Data ID:{" "}
-                  <code className="bg-gray-100 px-1 rounded">{data.id}</code>
+                  <code className="bg-gray-100 px-1 rounded text-[10px] sm:text-xs">{data.id}</code>
                 </p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <div className="text-red-700 font-medium">Transaction Error</div>
-              <div className="text-sm text-red-600 mt-1">{error.message}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+              <div className="text-red-700 font-medium text-xs sm:text-sm">Transaction Error</div>
+              <div className="text-[10px] sm:text-xs text-red-600 mt-1 break-words">{error.message}</div>
               
               {/* 检测智能账户错误 */}
               {error.message?.includes('Account upgraded to unsupported contract') && (
-                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">⚠️</div>
-                    <div className="flex-1">
-                      <div className="font-medium text-orange-800 mb-2">
+                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="text-lg sm:text-xl flex-shrink-0">⚠️</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-xs sm:text-sm text-orange-800 mb-2">
                         {t.smartAccountError}
                       </div>
-                      <div className="text-sm text-orange-700 mb-3">
+                      <div className="text-[10px] sm:text-xs text-orange-700 mb-3 break-words">
                         {t.smartAccountErrorDesc}
                       </div>
-                      <div className="text-sm text-orange-700">
-                        <strong>{t.solutionSteps}</strong>
-                        <ol className="list-decimal list-inside mt-2 space-y-2 ml-2">
-                          <li>{t.openMetaMask}</li>
-                          <li>{t.clickAccountIcon}</li>
-                          <li>{t.selectAccountDetails}</li>
-                          <li>{t.findSmartAccount}</li>
-                          <li>{t.clickDisableSmartAccount}</li>
-                          <li>{t.returnAndRetry}</li>
+                      <div className="text-[10px] sm:text-xs text-orange-700 break-words">
+                        <ol className="list-decimal list-inside mt-2 space-y-1 sm:space-y-2 ml-1 sm:ml-2">
+                          <li className="break-words">{t.openMetaMask}</li>
+                          <li className="break-words">{t.clickAccountIcon}</li>
+                          <li className="break-words">{t.selectAccountDetails}</li>
+                          <li className="break-words">{t.findSmartAccount}</li>
+                          <li className="break-words">{t.clickDisableSmartAccount}</li>
+                          <li className="break-words">{t.returnAndRetry}</li>
                         </ol>
-                      </div>
-                      <div className="mt-3 text-xs text-orange-600 bg-orange-100 p-2 rounded">
-                        💡 {t.smartAccountTip}
                       </div>
                     </div>
                   </div>
@@ -1669,14 +1869,14 @@ export default function Home() {
 
               {/* 检测 Gas Limit 过高错误 */}
               {error.message?.includes('gas limit too high') && (
-                <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">⚠️</div>
-                    <div className="flex-1">
-                      <div className="font-medium text-orange-800 mb-2">
+                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="text-xl sm:text-2xl flex-shrink-0">⚠️</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm sm:text-base text-orange-800 mb-2">
                         {t.gasLimitExceeded}
                       </div>
-                      <div className="text-sm text-orange-700">
+                      <div className="text-xs sm:text-sm text-orange-700 break-words">
                         {t.gasLimitExceededDesc}
                       </div>
                     </div>
@@ -1689,10 +1889,10 @@ export default function Home() {
           {/* Check transaction status button */}
           {data && (
             <button
-              className={`w-full rounded-lg border border-solid px-6 py-3 font-medium transition-colors ${
+              className={`w-full rounded-lg border border-solid px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-medium transition-colors ${
                 statusLoading
                   ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
-                  : "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300 cursor-pointer"
+                  : "bg-green-700 hover:bg-green-800 text-yellow-300 border-green-800 cursor-pointer"
               }`}
               onClick={handleGetCallsStatus}
               disabled={statusLoading || !data.id}
@@ -1705,126 +1905,144 @@ export default function Home() {
 
           {/* Status error */}
           {statusError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-              <div className="text-red-700 font-medium">Status Check Error</div>
-              <div className="text-sm text-red-600 mt-1">{statusError}</div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mt-3 sm:mt-4">
+              <div className="text-red-700 font-medium text-sm sm:text-base">Status Check Error</div>
+              <div className="text-xs sm:text-sm text-red-600 mt-1 break-words">{statusError}</div>
             </div>
           )}
 
           {/* Transaction hash */}
           {transactionHash && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-              <div className="text-blue-700 font-medium mb-2">
-                Transaction Confirmed!
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mt-3 sm:mt-4">
+              <div className="text-green-700 font-medium mb-2 text-sm sm:text-base">
+                {t.transactionConfirmed}
               </div>
-              <div className="text-sm">
+              <div className="text-xs sm:text-sm break-all">
                 <a
                   href={getExplorerUrl(chainId, transactionHash)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-800 hover:underline break-all"
                 >
-                  View on Explorer: {transactionHash}
+                  {t.viewOnExplorer}: {transactionHash}
                 </a>
               </div>
             </div>
           )}
         </div>
+        </>}
         </div>
       </main>
 
-      {/* 分享功能区域 */}
-      <div className="bg-gray-800 dark:bg-gray-900 py-8 px-4">
+      {/* 底部导航栏 */}
+      <div className="bg-gray-800 dark:bg-gray-900 py-3 sm:py-4 lg:py-3 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
-          {/* MetaMask Logo、版权与右侧按钮 */}
-          <div className="flex items-center justify-between mb-2">
-            {/* 左侧：MetaMask Logo 与版权小字 */}
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <a
-                  href="https://docs.metamask.io/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center hover:opacity-80 transition-opacity"
-                  title="MetaMask Documentation"
-                >
-                  <Image
-                    src="/metamask-logo-dark.svg"
-                    alt="MetaMask"
-                    width={240}
-                    height={80}
-                    className="h-16 w-auto"
-                  />
-                </a>
-                <div className="mt-2 text-xs text-gray-300">© 2025 MetaMask • A Consensys Formation</div>
-              </div>
+          <div className="flex flex-col gap-3 sm:gap-4 lg:gap-3 pt-2 sm:pt-3 lg:pt-2">
+            {/* 第一行：左侧内容和分享按钮（桌面端同一行，移动端分开） */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+              {/* 左侧：MetaMask Logo 与版权小字 */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+                <div className="text-center">
+                  <a
+                    href="https://docs.metamask.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center hover:opacity-80 transition-opacity"
+                    title="MetaMask Documentation"
+                  >
+                    <Image
+                      src="/metamask-logo-dark.svg"
+                      alt="MetaMask"
+                      width={240}
+                      height={80}
+                      className="h-10 sm:h-12 md:h-14 lg:h-12 w-auto"
+                    />
+                  </a>
+                  <div className="mt-2 text-[10px] sm:text-xs text-gray-300">© 2025 MetaMask • A Consensys Formation</div>
+                </div>
 
-              {/* Quickstart、Tutorials、Help 按钮 */}
-              <div className="flex items-center gap-8">
-                <a
-                  href="https://docs.metamask.io/quickstart/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white hover:text-green-400 font-semibold text-base transition-colors"
-                  title="Quickstart"
-                >
-                  Quickstart
-                </a>
-                <a
-                  href="https://docs.metamask.io/tutorials/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white hover:text-green-400 font-semibold text-base transition-colors"
-                  title="Tutorials"
-                >
-                  Tutorials
-                </a>
-                <a
-                  href="https://builder.metamask.io/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white hover:text-green-400 font-semibold text-base transition-colors"
-                  title="Help"
-                >
-                  Help ↗
-                </a>
+              {/* Quickstart、Tutorials、Help、GitHub 按钮 */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+                  <a
+                    href="https://docs.metamask.io/quickstart/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white hover:text-green-400 font-semibold text-sm sm:text-base transition-colors"
+                    title="Quickstart"
+                  >
+                    Quickstart
+                  </a>
+                  <a
+                    href="https://docs.metamask.io/tutorials/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white hover:text-green-400 font-semibold text-sm sm:text-base transition-colors"
+                    title="Tutorials"
+                  >
+                    Tutorials
+                  </a>
+                  {/* GitHub 链接 */}
+                  <a
+                    href="https://github.com/MetaMask/7702-livestream-demo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 sm:gap-2 text-white hover:text-green-400 font-semibold text-sm sm:text-base transition-colors"
+                    title="View on GitHub"
+                  >
+                    <Image
+                      src="/github.svg"
+                      alt="GitHub"
+                      width={20}
+                      height={20}
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                    />
+                    <span className="hidden sm:inline">GitHub</span>
+                    <span className="sm:hidden">GitHub</span>
+                  </a>
+                  <a
+                    href="https://builder.metamask.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white hover:text-green-400 font-semibold text-sm sm:text-base transition-colors"
+                    title="Help"
+                  >
+                    Help ↗
+                  </a>
+                </div>
               </div>
             </div>
 
-            {/* 右侧：分享按钮 */}
-            <div className="flex gap-2 items-center">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
-              </svg>
-              {t.share}
-            </button>
-
-            <button
-              onClick={handleTweet}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-              {t.tweet}
-            </button>
-
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              {t.copy}
-            </button>
+            {/* 第二行：分享按钮（右下方，并排显示） */}
+            <div className="flex items-center justify-center lg:justify-end gap-2 -mt-2 lg:-mt-3">
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap"
+              >
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                </svg>
+                <span>{t.share}</span>
+              </button>
+              <button
+                onClick={handleTweet}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap"
+              >
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                <span>{t.tweet}</span>
+              </button>
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap"
+              >
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>{t.copy}</span>
+              </button>
             </div>
           </div>
-
         </div>
       </div>
     </div>
