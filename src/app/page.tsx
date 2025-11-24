@@ -466,7 +466,9 @@ export default function Home() {
           url: url,
         });
       } catch (err) {
-        console.log('分享被取消或失败:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('分享被取消或失败:', err);
+        }
       }
     } else {
       // 降级到复制链接
@@ -487,7 +489,9 @@ export default function Home() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       // 可以添加一个简单的提示
-      console.log('链接已复制到剪贴板');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('链接已复制到剪贴板');
+      }
     } catch (err) {
       console.error('复制失败:', err);
     }
@@ -527,7 +531,9 @@ export default function Home() {
         clearTimeout(connectionTimeoutRef.current);
         connectionTimeoutRef.current = null;
       }
-      console.log('连接状态更新：已连接');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('连接状态更新：已连接');
+      }
     }
   }, [isConnected]);
 
@@ -551,7 +557,9 @@ export default function Home() {
         setTimeout(() => {
           if (window.ethereum?.selectedAddress) {
             // 检测到地址，尝试重新连接
-            console.log('检测到页面重新获得焦点且有地址，尝试重新连接...');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('检测到页面重新获得焦点且有地址，尝试重新连接...');
+            }
             if (!isConnected) {
               // 如果 wagmi 还未连接，尝试重新连接
               try {
@@ -583,7 +591,9 @@ export default function Home() {
   useEffect(() => {
     if (chainId && previousChainId && chainId !== previousChainId) {
       // Chain has changed
-      console.log('Network switched', { from: previousChainId, to: chainId });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Network switched', { from: previousChainId, to: chainId });
+      }
       setTransactionHash(null);
       setStatusError(null);
       setStatusLoading(false);
@@ -909,8 +919,10 @@ export default function Home() {
       ...(call.data && call.data !== '0x' && call.data.length > 2 && { data: call.data as `0x${string}` })
     }));
     
-    console.log("Sending batch transaction with calls:", calls);
-    console.log(`${t.originalTransactionCount}: ${customTransactions.length}，${t.actuallySent}: ${truncatedTransactions.length}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Sending batch transaction with calls:", calls);
+      console.log(`${t.originalTransactionCount}: ${customTransactions.length}，${t.actuallySent}: ${truncatedTransactions.length}`);
+    }
 
     if (!chainId) {
       console.error("发送批量交易失败：缺少链 ID");
@@ -933,7 +945,9 @@ export default function Home() {
 
     try {
       const status = await getCallsStatus(config, { id: data.id });
-      console.log("Transaction status:", status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Transaction status:", status);
+      }
 
       if (
         status.status === "success" &&
