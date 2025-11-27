@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { metaMask } from "wagmi/connectors";
 import { useAccount, useConnect, useDisconnect, useSendCalls, useChainId, useSwitchChain } from "wagmi";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getCallsStatus } from "@wagmi/core";
 import { wagmiConfig as config } from "@/providers/AppProvider";
 import { parseEther } from "viem";
@@ -587,33 +587,50 @@ export default function Home() {
     };
   }, [isConnected, connecting, connect]);
 
+  // 统一的重置函数：重置所有数据
+  const resetAllData = useCallback(() => {
+    console.log('🔄 重置所有数据');
+    // 重置交易相关状态
+    setCustomTransactions([]);
+    setTransactionHash(null);
+    setStatusError(null);
+    setStatusLoading(false);
+    
+    // 重置表单字段
+    setCustomTo('');
+    setCustomValue('');
+    setCustomData('');
+    setErc20TokenAddress('');
+    setErc20Amount('');
+    setErc20Recipient('');
+    setErc20Spender('');
+    
+    // 重置 wagmi 交易状态
+    reset();
+  }, [reset]);
+
+  // 监听连接状态变化，断开连接时重置所有数据
+  useEffect(() => {
+    if (!isConnected) {
+      // 钱包已断开连接，重置所有数据
+      console.log('🔌 钱包已断开连接，重置所有数据');
+      resetAllData();
+    }
+  }, [isConnected, resetAllData]);
+
   // Listen to chain changes
   useEffect(() => {
     if (chainId && previousChainId && chainId !== previousChainId) {
       // Chain has changed
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Network switched', { from: previousChainId, to: chainId });
-      }
-      setTransactionHash(null);
-      setStatusError(null);
-      setStatusLoading(false);
+      console.log('🔄 网络已切换', { from: previousChainId, to: chainId });
       setNetworkChanged(true);
       // Hide network switch message after 3 seconds
       setTimeout(() => setNetworkChanged(false), 3000);
-      // Clear all transaction data when network changes
-      setCustomTransactions([]);
-      setCustomTo('');
-      setCustomValue('');
-      setCustomData('');
-      setErc20TokenAddress('');
-      setErc20Amount('');
-      setErc20Recipient('');
-      setErc20Spender('');
-      // Reset wagmi transaction state
-      reset();
+      // 重置所有数据
+      resetAllData();
     }
     setPreviousChainId(chainId);
-  }, [chainId, previousChainId, reset]);
+  }, [chainId, previousChainId, resetAllData]);
 
   const handleSwitchChain = async (targetChainId: number) => {
     try {
@@ -1107,9 +1124,8 @@ export default function Home() {
                 onClick={() => {
                   if (isConnected) {
                     disconnect();
-                    setTransactionHash(null);
-                    setStatusError(null);
-                    reset();
+                    // 断开连接时重置所有数据
+                    resetAllData();
                   } else {
                     handleConnectWallet();
                   }
