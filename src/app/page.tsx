@@ -8,6 +8,7 @@ import { getCallsStatus } from "@wagmi/core";
 import { wagmiConfig as config } from "@/providers/AppProvider";
 import { parseEther } from "viem";
 import { mainnet, polygon, bsc, arbitrum, base, sepolia, optimism } from "viem/chains";
+import { monad } from "@/providers/AppProvider";
 
 // Supported chain configuration
 const SUPPORTED_CHAINS = [
@@ -17,6 +18,7 @@ const SUPPORTED_CHAINS = [
   { id: arbitrum.id, name: 'Arbitrum', logo: '/arbitrum-logo.svg' },
   { id: base.id, name: 'Base', logo: '/base-logo.svg' },
   { id: optimism.id, name: 'Optimism', logo: '/optimism-logo.svg' },
+  { id: monad.id, name: 'Monad', logo: '/monad-logo.svg' },
   { id: sepolia.id, name: 'Sepolia', logo: '/ethereum2-logo.svg' },
 ];
 
@@ -28,7 +30,8 @@ const CHAIN_NAMES = {
   42161: 'Arbitrum',
   8453: 'Base',
   10: 'Optimism',
-  11155111: 'Sepolia'
+  11155111: 'Sepolia',
+  143: 'Monad'
 };
 
 // Get block explorer URL based on chain ID
@@ -41,6 +44,7 @@ function getExplorerUrl(chainId: number, txHash: string): string {
     8453: `https://basescan.org/tx/${txHash}`, // Base
     10: `https://optimistic.etherscan.io/tx/${txHash}`, // Optimism
     11155111: `https://sepolia.etherscan.io/tx/${txHash}`, // Sepolia
+    143: `https://monad.socialscan.io/tx/${txHash}`, // Monad
   };
   return explorerUrls[chainId as keyof typeof explorerUrls] || `https://etherscan.io/tx/${txHash}`;
 }
@@ -386,6 +390,8 @@ function getNativeCurrencyName(chainId: number | undefined): string {
       return 'BNB';
     case 137: // Polygon
       return 'POL';
+    case 143: // Monad
+      return 'MON';
     default:
       return 'ETH';
   }

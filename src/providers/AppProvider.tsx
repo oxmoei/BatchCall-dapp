@@ -3,8 +3,31 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum, base, sepolia, optimism } from "viem/chains";
+import { defineChain } from "viem";
 import { ReactNode } from "react";
 import { metaMask } from "wagmi/connectors";
+
+// Define Monad chain
+export const monad = defineChain({
+  id: 143,
+  name: 'Monad',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'MON',
+    symbol: 'MON',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://monad-mainnet.api.onfinality.io/public'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Monad Explorer',
+      url: 'https://monad.socialscan.io',
+    },
+  },
+});
 
 export const connectors = [
    metaMask({
@@ -22,7 +45,7 @@ const queryClient = new QueryClient({
 });
 
 export const wagmiConfig = createConfig({
-  chains: [mainnet, polygon, bsc, arbitrum, base, sepolia, optimism],
+  chains: [mainnet, polygon, bsc, arbitrum, base, sepolia, optimism, monad],
   connectors,
   multiInjectedProviderDiscovery: false,
   ssr: false,
@@ -34,6 +57,7 @@ export const wagmiConfig = createConfig({
     [base.id]: http('https://mainnet.base.org', { retryCount: 3 }),
     [sepolia.id]: http('https://rpc.sepolia.org', { retryCount: 3 }),
     [optimism.id]: http('https://mainnet.optimism.io', { retryCount: 3 }),
+    [monad.id]: http('https://monad-mainnet.api.onfinality.io/public', { retryCount: 3 }),
   },
 });
 
