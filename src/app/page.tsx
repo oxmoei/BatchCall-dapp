@@ -100,12 +100,13 @@ const texts = {
     gasLimitExceededDesc: '该笔交易可能含有一些特殊的代币合约导致该笔批量交易所需 Gas 异常偏高，建议移除这类交易后重试（或分批发送）。',
     smartAccountError: '需要关闭智能账户功能',
     smartAccountErrorDesc: '检测到账户已升级为不支持的合约版本。请按照以下步骤操作：',
+    solutionSteps: '解决步骤：',
     openMetaMask: '打开 MetaMask 钱包',
     clickAccountIcon: '点击右上角 "☰"',
-    selectAccountDetails: '选择 "账户详情"',
-    findSmartAccount: '设置 "智能账户"',
+    selectAccountDetails: '点击 "Open full screen"',
+    findSmartAccount: '选择"账户详情" → 设置 "智能账户"',
     clickDisableSmartAccount: '关闭相关链的智能账户（需支付Gas费）',
-    returnAndRetry: '返回此页面重新尝试批量交易',
+    returnAndRetry: '返回此页面重新尝试批量调用',
     smartAccountTip: '提示：你的账户将会自动重新升级为 MetaMask Smart Account，并进行批量交易。',
     addTransactionFirst: '请先添加交易',
     addTransactionFirstDesc: '在上方"配置批量交易"区域添加至少一笔交易后才能执行批量操作',
@@ -259,12 +260,13 @@ const texts = {
     gasLimitExceededDesc: 'This transaction may contain some special token contracts, causing the gas required for this batch transaction to be unusually high. Please remove those transactions and retry (or split into smaller batches).',
     smartAccountError: 'Need to disable smart account feature',
     smartAccountErrorDesc: 'Detected that the account has been upgraded to an unsupported contract version. Please follow these steps:',
+    solutionSteps: 'Solution Steps:',
     openMetaMask: 'Open MetaMask wallet',
     clickAccountIcon: 'Click the "☰" in the top right corner',
-    selectAccountDetails: 'Select "Account Details"',
-    findSmartAccount: 'Set up "Smart Account"',
+    selectAccountDetails: 'Tap "Open full screen"',
+    findSmartAccount: 'Select "Account Details" → set up "Smart Account"',
     clickDisableSmartAccount: 'Close the smart account related to the chain (requires gas fee)',
-    returnAndRetry: 'Return to this page and retry batch transactions',
+    returnAndRetry: 'Return to this page and retry batch calls',
     smartAccountTip: 'Tip: Your account will be automatically upgraded to a MetaMask Smart Account and will be able to perform batch transactions.',
     addTransactionFirst: 'Please add transactions first',
     addTransactionFirstDesc: 'Add at least one transaction in the "Configure Batch Transactions" area above before executing batch operations',
@@ -1889,6 +1891,7 @@ export default function Home() {
                         {t.smartAccountErrorDesc}
                       </div>
                       <div className="text-[10px] sm:text-xs text-orange-700 break-words">
+                        <strong>{t.solutionSteps}</strong>
                         <ol className="list-decimal list-inside mt-2 space-y-1 sm:space-y-2 ml-1 sm:ml-2">
                           <li className="break-words">{t.openMetaMask}</li>
                           <li className="break-words">{t.clickAccountIcon}</li>

@@ -8,6 +8,8 @@ import { ReactNode } from "react";
 import { metaMask } from "wagmi/connectors";
 
 // Define Monad chain
+// 注意：Monad 链目前尚未被 viem/chains 官方支持，因此需要使用 defineChain 手动定义
+// 如果未来 viem 添加了 Monad 支持，可以改为从 viem/chains 导入
 export const monad = defineChain({
   id: 143,
   name: 'Monad',
