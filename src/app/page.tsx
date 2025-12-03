@@ -442,6 +442,7 @@ export default function Home() {
   const [isInMetaMask, setIsInMetaMask] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showFlowModal, setShowFlowModal] = useState(false);
   const t = texts[language];
   
   // Get token transfer text based on chain ID
@@ -1017,9 +1018,21 @@ export default function Home() {
                 />
               </a>
               <div className="flex flex-col min-w-0">
-                <span className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent truncate">
-                  {t.title}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent truncate">
+                    {t.title}
+                  </span>
+                  {/* 提示按钮 */}
+                  <button
+                    onClick={() => setShowFlowModal(true)}
+                    className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
+                    title={language === 'zh' ? '查看操作流程' : 'View operation flow'}
+                  >
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                </div>
                 <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
                   {t.subtitle}
                 </span>
@@ -2084,6 +2097,117 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* 流程图弹窗 */}
+      {showFlowModal && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-200"
+          onClick={() => setShowFlowModal(false)}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 transform transition-all duration-200 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 关闭按钮 */}
+            <button
+              onClick={() => setShowFlowModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* 标题 */}
+            <div className="mb-8 pr-8">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-yellow-400 dark:text-yellow-300">
+                  {language === 'zh' ? '操作流程' : 'Operation Flow'}
+                </h2>
+              </div>
+              <div className="h-px bg-gradient-to-r from-blue-200 via-purple-200 to-blue-200 dark:from-blue-800 dark:via-purple-800 dark:to-blue-800 ml-4"></div>
+            </div>
+
+            {/* 流程图 */}
+            <div className="space-y-6">
+              {/* 步骤1：连接钱包 */}
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg mb-3">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    {language === 'zh' ? '连接钱包' : 'Connect Wallet'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {language === 'zh' ? '点击连接钱包按钮，授权 MetaMask 连接' : 'Click connect wallet button to authorize MetaMask connection'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 箭头 */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-0.5 h-12 bg-gradient-to-b from-blue-500 to-purple-500"></div>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-purple-500"></div>
+                </div>
+              </div>
+
+              {/* 步骤2：配置批量交易 */}
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg mb-3">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    {language === 'zh' ? '配置批量交易' : 'Configure Batch Transactions'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {language === 'zh' ? '添加需要批量执行的交易，最多支持10笔' : 'Add transactions to batch execute, up to 10 transactions'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 箭头 */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-0.5 h-12 bg-gradient-to-b from-purple-500 to-green-500"></div>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-green-500"></div>
+                </div>
+              </div>
+
+              {/* 步骤3：发送批量交易 */}
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg mb-3">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    {language === 'zh' ? '发送批量交易' : 'Send Batch Transaction'}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {language === 'zh' ? '确认并发送，所有交易将原子执行' : 'Confirm and send, all transactions will execute atomically'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 底部提示 */}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400">
+                {language === 'zh' ? '💡 提示：批量交易只需支付一次 Gas 费，更节省成本' : '💡 Tip: Batch transactions only require one gas fee payment, more cost-effective'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
