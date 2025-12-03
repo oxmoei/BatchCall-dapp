@@ -1025,7 +1025,7 @@ export default function Home() {
                   {/* 提示按钮 */}
                   <button
                     onClick={() => setShowFlowModal(true)}
-                    className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
+                    className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 hover:bg-yellow-400 dark:hover:bg-yellow-500 text-blue-600 dark:text-blue-400 hover:text-yellow-900 dark:hover:text-yellow-900 transition-colors flex-shrink-0"
                     title={language === 'zh' ? '查看操作流程' : 'View operation flow'}
                   >
                     <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
