@@ -2105,7 +2105,7 @@ export default function Home() {
           onClick={() => setShowFlowModal(false)}
         >
           <div 
-            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 transform transition-all duration-200 scale-100"
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 transform transition-all duration-200 scale-100 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 关闭按钮 */}
