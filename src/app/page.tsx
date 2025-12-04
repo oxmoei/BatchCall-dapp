@@ -1102,7 +1102,7 @@ export default function Home() {
 
                   {/* Dropdown menu options */}
                   {isChainDropdownOpen && (
-                    <div className="absolute top-full right-0 sm:left-0 mt-1 w-[200px] sm:w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
+                    <div className="absolute top-full right-0 sm:left-0 mt-1 w-auto min-w-fit sm:w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
                       {SUPPORTED_CHAINS.map((chain) => (
                         <button
                           key={chain.id}
@@ -2105,32 +2105,51 @@ export default function Home() {
           onClick={() => setShowFlowModal(false)}
         >
           <div 
-            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 transform transition-all duration-200 scale-100 max-h-[90vh] overflow-y-auto"
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-200 scale-100 max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 关闭按钮 */}
-            <button
-              onClick={() => setShowFlowModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* 标题 */}
-            <div className="mb-8 pr-8">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-yellow-400 dark:text-yellow-300">
-                  {language === 'zh' ? '操作流程' : 'Operation Flow'}
-                </h2>
+            {/* 蓝色标题栏 */}
+            <div className="bg-blue-600 dark:bg-blue-700 px-6 sm:px-8 py-2 sm:py-3 rounded-t-2xl">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    {t.title}
+                  </h2>
+                </div>
+                {/* 关闭按钮 */}
+                <button
+                  onClick={() => setShowFlowModal(false)}
+                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="h-px bg-gradient-to-r from-blue-200 via-purple-200 to-blue-200 dark:from-blue-800 dark:via-purple-800 dark:to-blue-800 ml-4"></div>
             </div>
 
-            {/* 流程图 */}
-            <div className="space-y-6">
+            {/* 内容区域 */}
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+              {/* 介绍部分 */}
+              <div className="mb-8">
+                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {t.subtitle}
+                </p>
+              </div>
+
+              {/* 操作步骤标题 */}
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-yellow-400 dark:text-yellow-300">
+                    {language === 'zh' ? '操作步骤' : 'Operation Steps'}
+                  </h3>
+                </div>
+                <div className="h-px bg-gradient-to-r from-blue-200 via-purple-200 to-blue-200 dark:from-blue-800 dark:via-purple-800 dark:to-blue-800 ml-4"></div>
+              </div>
+
+              {/* 流程图 */}
+              <div className="space-y-6">
               {/* 步骤1：连接钱包 */}
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg mb-3">
@@ -2197,13 +2216,14 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-            </div>
+              </div>
 
-            {/* 底部提示 */}
-            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400">
-                {language === 'zh' ? '💡 提示：批量交易只需支付一次 Gas 费，更节省成本' : '💡 Tip: Batch transactions only require one gas fee payment, more cost-effective'}
-              </p>
+              {/* 底部提示 */}
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400">
+                  {language === 'zh' ? '💡 提示：批量交易只需支付一次 Gas 费，更节省成本' : '💡 Tip: Batch transactions only require one gas fee payment, more cost-effective'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
