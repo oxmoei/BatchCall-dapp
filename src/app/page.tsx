@@ -476,7 +476,7 @@ export default function Home() {
         });
       } catch (err) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('分享被取消或失败:', err);
+          console.log('Share cancelled or failed:', err);
         }
       }
     } else {
@@ -499,10 +499,10 @@ export default function Home() {
       await navigator.clipboard.writeText(window.location.href);
       // 可以添加一个简单的提示
       if (process.env.NODE_ENV === 'development') {
-        console.log('链接已复制到剪贴板');
+        console.log('Link copied to clipboard');
       }
     } catch (err) {
-      console.error('复制失败:', err);
+      console.error('Copy failed:', err);
     }
   };
   
@@ -541,7 +541,7 @@ export default function Home() {
         connectionTimeoutRef.current = null;
       }
       if (process.env.NODE_ENV === 'development') {
-        console.log('连接状态更新：已连接');
+        console.log('Connection status updated: connected');
       }
     }
   }, [isConnected]);
@@ -567,14 +567,14 @@ export default function Home() {
           if (window.ethereum?.selectedAddress) {
             // 检测到地址，尝试重新连接
             if (process.env.NODE_ENV === 'development') {
-              console.log('检测到页面重新获得焦点且有地址，尝试重新连接...');
+              console.log('Page regained focus with address detected, attempting to reconnect...');
             }
             if (!isConnected) {
               // 如果 wagmi 还未连接，尝试重新连接
               try {
                 connect({ connector: metaMask() });
               } catch (error) {
-                console.error('重新连接异常:', error);
+                console.error('Reconnection error:', error);
                 setConnecting(false);
               }
             } else {
@@ -598,7 +598,7 @@ export default function Home() {
 
   // 统一的重置函数：重置所有数据
   const resetAllData = useCallback(() => {
-    console.log('🔄 重置所有数据');
+    console.log('🔄 Resetting all data');
     // 重置交易相关状态
     setCustomTransactions([]);
     setTransactionHash(null);
@@ -622,7 +622,7 @@ export default function Home() {
   useEffect(() => {
     if (!isConnected) {
       // 钱包已断开连接，重置所有数据
-      console.log('🔌 钱包已断开连接，重置所有数据');
+      console.log('🔌 Wallet disconnected, resetting all data');
       resetAllData();
     }
   }, [isConnected, resetAllData]);
@@ -631,7 +631,7 @@ export default function Home() {
   useEffect(() => {
     if (chainId && previousChainId && chainId !== previousChainId) {
       // Chain has changed
-      console.log('🔄 网络已切换', { from: previousChainId, to: chainId });
+      console.log('🔄 Network switched', { from: previousChainId, to: chainId });
       setNetworkChanged(true);
       // Hide network switch message after 3 seconds
       setTimeout(() => setNetworkChanged(false), 3000);
@@ -713,7 +713,7 @@ export default function Home() {
         }
       }, 15000);
     } catch (error: unknown) {
-      console.error('连接钱包异常:', error);
+      console.error('Wallet connection error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setStatusError(
         language === 'zh'
@@ -951,7 +951,7 @@ export default function Home() {
     }
 
     if (!chainId) {
-      console.error("发送批量交易失败：缺少链 ID");
+      console.error("Failed to send batch transaction: missing chain ID");
       setStatusError("当前网络信息缺失，请重新连接钱包后再试。");
       return;
     }
