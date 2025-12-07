@@ -520,6 +520,16 @@ export default function Home() {
     window.open(twitterUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const handleCopyAddress = async (address: string) => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(address);
+      }
+    } catch (err) {
+      console.error('Copy address failed:', err);
+    }
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -1427,6 +1437,15 @@ export default function Home() {
                   <div className="flex items-center gap-2 break-words">
                     <Image src="/address.svg" alt="Address" width={16} height={16} className="w-4 h-4 flex-shrink-0" />
                     <span>{t.addressLabel}: {address.slice(0, 6)}...{address.slice(-4)}</span>
+                    <button
+                      onClick={() => handleCopyAddress(address)}
+                      className="ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      title={language === 'zh' ? '复制地址' : 'Copy address'}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
                   </div>
                 )}
               </div>
