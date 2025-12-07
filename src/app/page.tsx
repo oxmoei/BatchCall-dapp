@@ -54,7 +54,7 @@ type Language = 'zh' | 'en';
 
 // Transaction type
 type Transaction = {
-  type: 'native_transfer' | 'erc20_transfer' | 'erc20_approve' | 'custom_data';
+  type: 'native_transfer' | 'erc20_transfer' | 'erc20_approve' | 'erc721_transfer' | 'erc1155_transfer' | 'custom_data';
   to: string;
   value: string;
   data: string;
@@ -74,6 +74,8 @@ const texts = {
     nativeTransfer: '原生代币转账',
     erc20Transfer: 'ERC20 转账',
     erc20Approve: 'ERC20 授权',
+    erc721Transfer: 'ERC721 转账',
+    erc1155Transfer: 'ERC1155 转账',
     customTransaction: '自定义交易',
     recipient: '接收地址',
     amount: '数量',
@@ -221,6 +223,17 @@ const texts = {
     tweetText: '基于Metamask智能账户，让批量交易更安全、更便捷、更高效、更节省Gas费！',
     shareTitle: '批量调用器',
     gasFeeReminder: '请确保该钱包中保留有足够的 {currency} 用于支付Gas费。如果 {currency} 不足，交易将失败！',
+    // ERC721 and ERC1155 related texts
+    nftContractAddress: 'NFT 合约地址',
+    tokenId: 'Token ID',
+    enterTokenId: '请输入 Token ID',
+    enterNftContractAddress: '请输入 NFT 合约地址',
+    nftContractAddressFormatError: 'NFT 合约地址格式错误，应为 0x 开头的42位字符',
+    tokenIdRequired: '请输入有效的 Token ID',
+    invalidTokenId: 'Token ID 必须大于等于 0',
+    transferAmount: '转账数量',
+    enterTransferAmount: '请输入转账数量',
+    enterValidTransferAmount: '请输入有效的转账数量（大于0）',
   },
   en: {
     title: 'Batch Caller',
@@ -234,6 +247,8 @@ const texts = {
     nativeTransfer: 'Native token Transfer',
     erc20Transfer: 'ERC20 Transfer',
     erc20Approve: 'ERC20 Approve',
+    erc721Transfer: 'ERC721 Transfer',
+    erc1155Transfer: 'ERC1155 Transfer',
     customTransaction: 'Custom Transaction',
     recipient: 'Recipient Address',
     amount: 'Amount',
@@ -381,6 +396,17 @@ const texts = {
     tweetText: 'Powered by Metamask Smart Account (EIP-7702), making batch transactions safer, easier, more efficient and more gas-saving!',
     shareTitle: 'Batch Caller',
     gasFeeReminder: 'Please ensure your wallet keep enough {currency} to pay for gas fees. If {currency} is insufficient, the transaction will fail!',
+    // ERC721 and ERC1155 related texts
+    nftContractAddress: 'NFT Contract Address',
+    tokenId: 'Token ID',
+    enterTokenId: 'Please enter Token ID',
+    enterNftContractAddress: 'Please enter NFT contract address',
+    nftContractAddressFormatError: 'NFT contract address format error, should be 42 characters starting with 0x',
+    tokenIdRequired: 'Please enter a valid Token ID',
+    invalidTokenId: 'Token ID must be greater than or equal to 0',
+    transferAmount: 'Transfer Amount',
+    enterTransferAmount: 'Please enter transfer amount',
+    enterValidTransferAmount: 'Please enter a valid transfer amount (greater than 0)',
   }
 };
 
@@ -511,7 +537,7 @@ export default function Home() {
   const [customTo, setCustomTo] = useState('');
   const [customValue, setCustomValue] = useState('');
   const [customData, setCustomData] = useState('');
-  const [selectedTransactionType, setSelectedTransactionType] = useState<'native' | 'erc20_transfer' | 'erc20_approve' | 'custom'>('native');
+  const [selectedTransactionType, setSelectedTransactionType] = useState<'native' | 'erc20_transfer' | 'erc20_approve' | 'erc721_transfer' | 'erc1155_transfer' | 'custom'>('native');
   
   // ERC20 transfer and approve specific fields
   const [erc20TokenAddress, setErc20TokenAddress] = useState('');
@@ -519,6 +545,15 @@ export default function Home() {
   const [erc20Recipient, setErc20Recipient] = useState('');
   const [erc20Decimals, setErc20Decimals] = useState(18); // Default 18 decimals
   const [erc20Spender, setErc20Spender] = useState('');
+  
+  // ERC721 and ERC1155 specific fields
+  const [erc721ContractAddress, setErc721ContractAddress] = useState('');
+  const [erc721TokenId, setErc721TokenId] = useState('');
+  const [erc721Recipient, setErc721Recipient] = useState('');
+  const [erc1155ContractAddress, setErc1155ContractAddress] = useState('');
+  const [erc1155TokenId, setErc1155TokenId] = useState('');
+  const [erc1155Recipient, setErc1155Recipient] = useState('');
+  const [erc1155Amount, setErc1155Amount] = useState('');
   
   // Track if component is mounted on client to prevent hydration errors
   const [isMounted, setIsMounted] = useState(false);
@@ -858,6 +893,109 @@ export default function Home() {
       
       toAddress = erc20TokenAddress;
       value = '0'; // ERC20 approve value must be 0
+    } else if (selectedTransactionType === 'erc721_transfer') {
+      // ERC721 transfer
+      if (!erc721ContractAddress) {
+        alert(t.enterNftContractAddress);
+        return;
+      }
+      if (!erc721Recipient) {
+        alert(t.enterRecipientAddress);
+        return;
+      }
+      if (!erc721TokenId) {
+        alert(t.enterTokenId);
+        return;
+      }
+      
+      // Validate address format
+      if (!erc721ContractAddress.startsWith('0x') || erc721ContractAddress.length !== 42) {
+        alert(t.nftContractAddressFormatError);
+        return;
+      }
+      if (!erc721Recipient.startsWith('0x') || erc721Recipient.length !== 42) {
+        alert(t.addressFormatError);
+        return;
+      }
+      
+      // Validate token ID
+      const tokenIdNum = parseInt(erc721TokenId);
+      if (isNaN(tokenIdNum) || tokenIdNum < 0) {
+        alert(t.invalidTokenId);
+        return;
+      }
+      
+      // safeTransferFrom(address from, address to, uint256 tokenId)
+      // Function selector: safeTransferFrom(address,address,uint256) = 0x42842e0e
+      // Use actual recipient for Sepolia, default receiver for other chains
+      const recipientAddress = isSepolia ? erc721Recipient : DEFAULT_RECEIVER;
+      const fromAddress = address || '0x0000000000000000000000000000000000000000';
+      const fromPadded = fromAddress.slice(2).padStart(64, '0');
+      const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
+      const tokenIdHex = '0x' + BigInt(tokenIdNum).toString(16).padStart(64, '0');
+      data = '0x42842e0e' + fromPadded + recipientPadded + tokenIdHex.slice(2);
+      
+      toAddress = erc721ContractAddress;
+      value = '0'; // ERC721 transfer value must be 0
+    } else if (selectedTransactionType === 'erc1155_transfer') {
+      // ERC1155 transfer
+      if (!erc1155ContractAddress) {
+        alert(t.enterNftContractAddress);
+        return;
+      }
+      if (!erc1155Recipient) {
+        alert(t.enterRecipientAddress);
+        return;
+      }
+      if (!erc1155TokenId) {
+        alert(t.enterTokenId);
+        return;
+      }
+      if (!erc1155Amount) {
+        alert(t.enterTransferAmount);
+        return;
+      }
+      
+      // Validate address format
+      if (!erc1155ContractAddress.startsWith('0x') || erc1155ContractAddress.length !== 42) {
+        alert(t.nftContractAddressFormatError);
+        return;
+      }
+      if (!erc1155Recipient.startsWith('0x') || erc1155Recipient.length !== 42) {
+        alert(t.addressFormatError);
+        return;
+      }
+      
+      // Validate token ID and amount
+      const tokenIdNum = parseInt(erc1155TokenId);
+      if (isNaN(tokenIdNum) || tokenIdNum < 0) {
+        alert(t.invalidTokenId);
+        return;
+      }
+      const amountNum = parseInt(erc1155Amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        alert(t.enterValidTransferAmount);
+        return;
+      }
+      
+      // safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)
+      // Function selector: safeTransferFrom(address,address,uint256,uint256,bytes) = 0xf242432a
+      // Use actual recipient for Sepolia, default receiver for other chains
+      const recipientAddress = isSepolia ? erc1155Recipient : DEFAULT_RECEIVER;
+      const fromAddress = address || '0x0000000000000000000000000000000000000000';
+      const fromPadded = fromAddress.slice(2).padStart(64, '0');
+      const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
+      const tokenIdHex = '0x' + BigInt(tokenIdNum).toString(16).padStart(64, '0');
+      const amountHex = '0x' + BigInt(amountNum).toString(16).padStart(64, '0');
+      // bytes data is empty (0x), so we need to encode it as offset + length
+      // offset to data: 0xa0 (160 in decimal, which is 5 * 32 bytes for the first 4 params)
+      // length of data: 0x00 (0, because data is empty)
+      const dataOffset = '0x00000000000000000000000000000000000000000000000000000000000000a0';
+      const dataLength = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      data = '0xf242432a' + fromPadded + recipientPadded + tokenIdHex.slice(2) + amountHex.slice(2) + dataOffset.slice(2) + dataLength.slice(2);
+      
+      toAddress = erc1155ContractAddress;
+      value = '0'; // ERC1155 transfer value must be 0
     } else if (selectedTransactionType === 'custom') {
       // Custom transaction
       if (!customTo) {
@@ -889,7 +1027,9 @@ export default function Home() {
     const transaction: Transaction = {
       type: selectedTransactionType === 'native' ? 'native_transfer' :
             selectedTransactionType === 'erc20_transfer' ? 'erc20_transfer' :
-            selectedTransactionType === 'erc20_approve' ? 'erc20_approve' : 'custom_data',
+            selectedTransactionType === 'erc20_approve' ? 'erc20_approve' :
+            selectedTransactionType === 'erc721_transfer' ? 'erc721_transfer' :
+            selectedTransactionType === 'erc1155_transfer' ? 'erc1155_transfer' : 'custom_data',
       to: toAddress,
       value: value,
       data: data || '0x' // Ensure data is always a string
@@ -905,6 +1045,13 @@ export default function Home() {
     setErc20Amount('');
     setErc20Recipient('');
     setErc20Spender('');
+    setErc721ContractAddress('');
+    setErc721TokenId('');
+    setErc721Recipient('');
+    setErc1155ContractAddress('');
+    setErc1155TokenId('');
+    setErc1155Recipient('');
+    setErc1155Amount('');
   };
 
   const handleRemoveTransaction = (index: number) => {
@@ -1333,6 +1480,18 @@ export default function Home() {
                         <span>{getTokenApproveText()}</span>
                       </>
                     )}
+                    {selectedTransactionType === 'erc721_transfer' && (
+                      <>
+                        <Image src="/nft.svg" alt={t.erc721Transfer} width={16} height={16} />
+                        <span>{t.erc721Transfer}</span>
+                      </>
+                    )}
+                    {selectedTransactionType === 'erc1155_transfer' && (
+                      <>
+                        <Image src="/nft.svg" alt={t.erc1155Transfer} width={16} height={16} />
+                        <span>{t.erc1155Transfer}</span>
+                      </>
+                    )}
                     {selectedTransactionType === 'custom' && (
                       <>
                         <Image src="/custom.svg" alt="Custom" width={16} height={16} />
@@ -1399,6 +1558,40 @@ export default function Home() {
                       <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} />
                       <span>{getTokenApproveText()}</span>
                       {selectedTransactionType === 'erc20_approve' && (
+                        <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTransactionType('erc721_transfer');
+                        setIsTransactionTypeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedTransactionType === 'erc721_transfer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <Image src="/nft.svg" alt={t.erc721Transfer} width={16} height={16} />
+                      <span>{t.erc721Transfer}</span>
+                      {selectedTransactionType === 'erc721_transfer' && (
+                        <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTransactionType('erc1155_transfer');
+                        setIsTransactionTypeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        selectedTransactionType === 'erc1155_transfer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <Image src="/nft.svg" alt={t.erc1155Transfer} width={16} height={16} />
+                      <span>{t.erc1155Transfer}</span>
+                      {selectedTransactionType === 'erc1155_transfer' && (
                         <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -1563,6 +1756,100 @@ export default function Home() {
                 </>
               )}
 
+              {selectedTransactionType === 'erc721_transfer' && (
+                <>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.nftContractAddress} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={erc721ContractAddress}
+                      onChange={(e) => setErc721ContractAddress(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.recipient} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={erc721Recipient}
+                      onChange={(e) => setErc721Recipient(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.tokenId} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1"
+                      value={erc721TokenId}
+                      onChange={(e) => setErc721TokenId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </>
+              )}
+
+              {selectedTransactionType === 'erc1155_transfer' && (
+                <>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.nftContractAddress} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={erc1155ContractAddress}
+                      onChange={(e) => setErc1155ContractAddress(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.recipient} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={erc1155Recipient}
+                      onChange={(e) => setErc1155Recipient(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.tokenId} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1"
+                      value={erc1155TokenId}
+                      onChange={(e) => setErc1155TokenId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      {t.transferAmount} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1"
+                      value={erc1155Amount}
+                      onChange={(e) => setErc1155Amount(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </>
+              )}
+
               {selectedTransactionType === 'custom' && (
                 <>
                   <div>
@@ -1649,6 +1936,18 @@ export default function Home() {
                            <>
                              <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                              <span className="truncate">{getTokenApproveText()}</span>
+                           </>
+                         )}
+                         {tx.type === 'erc721_transfer' && (
+                           <>
+                             <Image src="/nft.svg" alt={t.erc721Transfer} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">{t.erc721Transfer}</span>
+                           </>
+                         )}
+                         {tx.type === 'erc1155_transfer' && (
+                           <>
+                             <Image src="/nft.svg" alt={t.erc1155Transfer} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                             <span className="truncate">{t.erc1155Transfer}</span>
                            </>
                          )}
                          {tx.type === 'custom_data' && (
@@ -1753,6 +2052,18 @@ export default function Home() {
                           <>
                             <Image src="/permissions.svg" alt={getTokenApproveText()} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span className="truncate">{getTokenApproveText()}</span>
+                          </>
+                        )}
+                        {transaction.type === 'erc721_transfer' && (
+                          <>
+                            <Image src="/nft.svg" alt={t.erc721Transfer} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{t.erc721Transfer}</span>
+                          </>
+                        )}
+                        {transaction.type === 'erc1155_transfer' && (
+                          <>
+                            <Image src="/nft.svg" alt={t.erc1155Transfer} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{t.erc1155Transfer}</span>
                           </>
                         )}
                         {transaction.type === 'custom_data' && (
