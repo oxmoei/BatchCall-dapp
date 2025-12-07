@@ -1439,7 +1439,7 @@ export default function Home() {
                     <span>{t.addressLabel}: {address.slice(0, 6)}...{address.slice(-4)}</span>
                     <button
                       onClick={() => handleCopyAddress(address)}
-                      className="ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      className="ml-1 text-gray-500 hover:text-green-500 dark:text-gray-400 dark:hover:text-green-500 transition-colors"
                       title={language === 'zh' ? '复制地址' : 'Copy address'}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
