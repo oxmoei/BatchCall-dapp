@@ -1,5 +1,5 @@
 {
-  "name": "MM-EIP7702批量交易",
+  "name": "BatchCall-tool",
   "version": "0.1.0",
   "private": true,
   "scripts": {

