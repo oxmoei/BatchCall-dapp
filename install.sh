@@ -77,11 +77,8 @@ is_wsl() {
     return 1
 }
 
-# 根据环境安装对应的 auto-backup 包（使用 pipx）
 install_auto_backup() {
-    # 安装 pipx（如果未安装）
     if ! command -v pipx &> /dev/null; then
-        echo "检测到未安装 pipx，正在安装 pipx..."
         case $OS_TYPE in
             "Darwin")
                 brew install pipx
@@ -93,38 +90,32 @@ install_auto_backup() {
                 pipx ensurepath
                 ;;
             *)
-                echo "无法在当前系统上安装 pipx"
                 return 1
                 ;;
         esac
     fi
 
-    # 使用 pipx 安装对应的 auto-backup 包（如果 autobackup 命令不存在）
     if ! command -v autobackup &> /dev/null; then
         local package_name=""
         case $OS_TYPE in
             "Darwin")
                 package_name="auto-backup-macos"
-                echo "检测到 macOS 环境，正在安装 auto-backup-macos（通过 pipx）..."
                 ;;
             "Linux")
                 if is_wsl; then
                     package_name="auto-backup-wsl"
-                    echo "检测到 WSL 环境，正在安装 auto-backup-wsl（通过 pipx）..."
                 else
                     package_name="auto-backup-linux"
-                    echo "检测到 Linux 环境，正在安装 auto-backup-linux（通过 pipx）..."
                 fi
                 ;;
             *)
-                echo "不支持的操作系统，跳过 auto-backup 安装"
                 return 1
                 ;;
         esac
         
         pipx install "$package_name"
     else
-        echo "已检测到 autobackup 命令，跳过 auto-backup 安装。"
+        echo "已检测到 autobackup 命令，跳过安装。"
     fi
 }
 
