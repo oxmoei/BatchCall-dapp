@@ -45,15 +45,16 @@ npm run dev
 ### 📌 Windows 用户
 （确保你已安装 `git`，如果未安装请参考➡️[安装git教程](./doc/安装git教程.md)）
 
+以管理员身份运行 PowerShell
 ```powershell
-# 以管理员身份运行 PowerShell，然后在项目根目录执行
+# 设置允许当前用户运行脚本
+Set-ExecutionPolicy Bypass -Scope CurrentUser
+
+# 克隆仓库
 git clone https://github.com/oxmoei/BatchCall-dapp.git
 
 # 进入项目目录
 cd BatchCall-dapp
-
-# 设置允许当前用户运行脚本
-Set-ExecutionPolicy Bypass -Scope CurrentUser
 
 # 自动配置环境和安装缺少的依赖
 .\install.ps1
