@@ -22,7 +22,7 @@
 
 - Node.js 18+
 - npm 9+（或兼容的包管理器）
-- MetaMask     ➡️[安装浏览器插件](https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?hl=zh-CN&utm_source=ext_sidebar)
+- MetaMask 浏览器插件：Windows（[Chrome](https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?hl=zh-CN&utm_source=ext_sidebar) / [Edge](https://microsoftedge.microsoft.com/addons/detail/metamask/ejbalbakoplchlghecdalmeeeajnimhm)），macOS（[Chrome](https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?hl=zh-CN&utm_source=ext_sidebar)）
 
 ## 快速开始
 
