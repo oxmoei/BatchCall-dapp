@@ -33,7 +33,7 @@
 # 克隆仓库并进入项目目录
 git clone https://github.com/oxmoei/BatchCall-dapp.git && cd BatchCall-dapp
 
-# 自动配置环境和安装缺少的依赖
+# 自动识别所在系统来配置环境并安装缺失的依赖
 ./install.sh
 
 # 启动开发服务器
